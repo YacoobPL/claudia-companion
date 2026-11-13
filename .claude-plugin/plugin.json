@@ -1,0 +1,20 @@
+{
+  "name": "claudia-companion",
+  "version": "0.3.0",
+  "description": "Claudia (open character by anabology, claudia.gallery) in a pane beside the chat: thinks while tools run, waves when Claude needs your OK, facepalms on errors, sings when work is done. Fan work, not affiliated with Anthropic.",
+  "license": "MIT",
+  "keywords": [
+    "companion",
+    "pixel-art",
+    "pane",
+    "mascot",
+    "claudia"
+  ],
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "YacoobPL",
+    "url": "https://github.com/YacoobPL"
+  },
+  "homepage": "https://github.com/YacoobPL/claudia-companion",
+  "repository": "https://github.com/YacoobPL/claudia-companion"
+}

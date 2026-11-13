@@ -1,0 +1,11 @@
+{
+  "name": "claudia-companion",
+  "owner": { "name": "YacoobPL" },
+  "plugins": [
+    {
+      "name": "claudia-companion",
+      "source": "./",
+      "description": "Claudia (open character by anabology) in a pane beside your Claude Code chat. Fan work, not affiliated with Anthropic."
+    }
+  ]
+}
