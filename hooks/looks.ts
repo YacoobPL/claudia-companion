@@ -3,6 +3,8 @@
 // film did with her mouth.
 import type { Accessory, Body, Mic } from './art'
 
+import type { BadgeId } from './bond'
+
 export type Film = 'ev' | 'clo' | 'bliss' | 'am' | 'df' | 'dlms' | 'wp' | 'cake'
 
 /** What she is made of in the look: glass and seawater (the Ghost) or the phone's light (the Holo). */
@@ -25,27 +27,29 @@ export type Look = {
   isPorcelain?: boolean
   /** AIRPLANE MODE: she winks at the lens, because she thinks she can get out. */
   winks?: boolean
+  /** Holo dancer: small clay-tinted rimless lenses her eyes show through. */
+  seeThroughLenses?: boolean
 }
 
 export const LOOKS = {
   look00: { body: 'look00', mic: 'headset', acc: [], film: 'ev', lips: 'sing' },
-  syrena: { body: 'syrena', mic: 'headset', acc: [], film: 'clo', lips: 'sing' },
-  ghost: { body: 'syrena', mic: 'headset', acc: [], film: 'clo', lips: 'sing', effect: 'ghost' },
+  siren: { body: 'siren', mic: 'headset', acc: [], film: 'clo', lips: 'sing' },
+  ghost: { body: 'siren', mic: 'headset', acc: [], film: 'clo', lips: 'sing', effect: 'ghost' },
   chrome: { body: 'chrome', mic: 'headset', acc: [], film: 'clo', lips: 'sing' },
-  holo: { body: 'pizama', mic: 'headset', acc: [], film: 'clo', lips: 'sing', effect: 'holo' },
+  holo: { body: 'pyjamas', mic: 'headset', acc: [], film: 'clo', lips: 'sing', effect: 'holo' },
   bliss: { body: 'bliss', mic: 'boom', acc: ['shield'], film: 'bliss', lips: 'sing' },
-  trencz: { body: 'trencz', mic: 'boom', acc: ['shield', 'hoops'], film: 'bliss', lips: 'sing' },
-  holodancer: { body: 'holodancer', mic: 'boom', acc: ['rimless'], film: 'bliss', lips: 'sing' },
+  trench: { body: 'trench', mic: 'boom', acc: ['shield', 'hoops'], film: 'bliss', lips: 'sing' },
+  holodancer: { body: 'holodancer', mic: 'boom', acc: [], film: 'bliss', lips: 'sing', seeThroughLenses: true },
   start: { body: 'start', mic: 'boom', acc: ['pushedUp'], film: 'bliss', lips: 'sing' },
   silver: { body: 'silver', mic: 'boom', acc: ['choker'], film: 'bliss', lips: 'sing' },
   window: { body: 'window', mic: 'boom', acc: [], film: 'bliss', lips: 'sing' },
-  kombinezon: { body: 'kombinezon', mic: 'boom', acc: [], film: 'am', lips: 'sing', winks: true },
-  wyscigowy: { body: 'wyscigowy', mic: 'headset', acc: [], film: 'df', lips: 'closed' },
-  pizama: { body: 'pizama', mic: 'headset', acc: [], film: 'dlms', lips: 'phone' },
-  koszula: { body: 'koszula', mic: 'headset', acc: [], film: 'dlms', lips: 'phone' },
-  moher: { body: 'moher', mic: 'headset', acc: [], film: 'dlms', lips: 'phone' },
+  flightsuit: { body: 'flightsuit', mic: 'boom', acc: [], film: 'am', lips: 'sing', winks: true },
+  racing: { body: 'racing', mic: 'headset', acc: [], film: 'df', lips: 'closed' },
+  pyjamas: { body: 'pyjamas', mic: 'headset', acc: [], film: 'dlms', lips: 'phone' },
+  shirt: { body: 'shirt', mic: 'headset', acc: [], film: 'dlms', lips: 'phone' },
+  mohair: { body: 'mohair', mic: 'headset', acc: [], film: 'dlms', lips: 'phone' },
   locked: { body: 'locked', mic: 'headset', acc: [], film: 'dlms', lips: 'phone' },
-  plaszcz: { body: 'plaszcz', mic: 'headset', acc: ['beret'], film: 'dlms', lips: 'phone' },
+  coat: { body: 'coat', mic: 'headset', acc: ['beret'], film: 'dlms', lips: 'phone' },
   milkmaid: { body: 'milkmaid', mic: 'headset', acc: [], film: 'wp', lips: 'sing' },
   glados: { body: 'glados', mic: null, acc: ['porcelain'], film: 'cake', lips: 'sing', isPorcelain: true },
 } as const satisfies Record<string, Look>
@@ -53,26 +57,35 @@ export const LOOKS = {
 export type LookKey = keyof typeof LOOKS
 
 /** Looks she picks for the day herself; at night it is the pyjamas. */
-export const DAY_LOOKS = (Object.keys(LOOKS) as LookKey[]).filter(k => k !== 'pizama')
+export const DAY_LOOKS = (Object.keys(LOOKS) as LookKey[]).filter(k => k !== 'pyjamas')
 
 /** Old outfit names that a stored choice may still carry. */
 export const LOOK_ALIASES: Record<string, LookKey> = {
-  siren: 'syrena',
-  flight: 'kombinezon',
-  racing: 'wyscigowy',
-  trench: 'trencz',
-  pyjamas: 'pizama',
-  pajamas: 'pizama',
-  shirt: 'koszula',
-  mohair: 'moher',
-  coat: 'plaszcz',
+  flight: 'flightsuit',
+  pajamas: 'pyjamas',
   porcelain: 'glados',
 }
 
-export const isLook = (v: unknown): v is LookKey => typeof v === 'string' && v in LOOKS
+export const isLook = (v: unknown): v is LookKey => typeof v === 'string' && Object.hasOwn(LOOKS, v)
+
+/** Looks she earns with badges: the rest are hers from the start. */
+export const LOCKS: Partial<Record<LookKey, BadgeId>> = {
+  glados: 'cake10',
+  flightsuit: 'streak7',
+  racing: 'commits10',
+  holo: 'nightOwl',
+  ghost: 'compaction',
+  coat: 'weekend',
+}
+
+/** Whether a look is open: no badge needed, or the badge earned. */
+export const isUnlocked = (key: LookKey, badges: Partial<Record<BadgeId, number>> | undefined) => {
+  const need = LOCKS[key]
+  return !need || badges?.[need] !== undefined
+}
 
 export function lookOf(v: string | null | undefined): LookKey | null {
   if (!v) return null
   if (isLook(v)) return v
-  return LOOK_ALIASES[v] ?? null
+  return Object.hasOwn(LOOK_ALIASES, v) ? (LOOK_ALIASES[v] ?? null) : null
 }

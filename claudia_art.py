@@ -36,7 +36,8 @@ PAL = {
     "O": 0xE8B04A, "o": 0xF29AAE,                 # pencil, eraser
     "J": 0xE6E8EE, "j": 0x9AA0AC,                 # chrome: highlight, shade
     "l": 0xB9A6E0,                                # lavender
-    "5": 0xE9A58C, "6": 0xB8664D,                 # clay-tinted lenses, their rim
+    "5": 0xE9A58C, "6": 0xB8664D,                 # see-through clay tint, its rim
+    "<": 0x6E3424, ">": 0xC2603F,                 # shield sunglasses: rim, clay-tinted lens
     "I": 0xF6F4F0, "i": 0xD3CEC6, "7": 0x9C968E,  # porcelain, shade, panel seams
     "1": 0xFFB347, "2": 0xFFE2A8,                 # amber glass eyes, glow
     "3": 0x18181C, "4": 0xFF7A1A,                 # GLaDOS cables, their orange stripes
@@ -106,8 +107,8 @@ def head():
     put(g, 16, 18, "s")
     put(g, 15, 19, "s")
     # resting face: deadpan, curious; dark calm eyes, a small defined mouth
-    stamp(g, 11, 13, [" EE ", "EeEW", "sees"])
-    stamp(g, 18, 13, [" EE ", "WEeE", "sees"])
+    stamp(g, 11, 13, ["EEEE", "WeeW", " ee "])
+    stamp(g, 18, 13, ["EEEE", "WeeW", " ee "])
     stamp(g, 14, 21, ["sMMs"])
     return g
 
@@ -156,8 +157,9 @@ def face_think(g):
     stamp(g, 11, 13, [" EEE", "WWeE", "ssss"])
     stamp(g, 18, 13, [" EEE", "WWeE", "ssss"])
     stamp(g, 15, 21, ["sMM"])
-    stamp(g, 26, 6, ["W"])
-    stamp(g, 28, 3, ["WW", "WW"])
+    # thought bubbles in a mid blue-grey: they read on a dark terminal and on a light one
+    stamp(g, 26, 6, ["Z"])
+    stamp(g, 28, 3, ["ZZ", "ZZ"])
 
 
 def face_happy(g):
@@ -169,26 +171,13 @@ def face_happy(g):
     stamp(g, 21, 17, ["PP"])
     stamp(g, 14, 20, [" MM ", "MmmM", "MmmM", " MM "])
     for x, y in [(2, 9), (1, 10), (3, 10), (2, 11), (28, 13), (29, 12), (29, 14), (30, 13)]:
-        put(g, x, y, "Y")
+        put(g, x, y, "O")
 
 
 def face_oops(g):
     clear_face(g)
     stamp(g, 18, 13, ["   E", " EE ", "   E"])
     stamp(g, 14, 21, ["M M ", " M M"])
-    stamp(g, 7, 9, [
-        " SSSSSSSs ",
-        "SSSSSSSSSs",
-        "sSSSSSSSSs",
-        "SSSSSSSSs ",
-        "sSSSSSSs  ",
-        " SSSSSs   ",
-        "  SSSs    ",
-    ])
-    for i, y in enumerate(range(16, H)):
-        x = 8 - i // 2
-        for dx in range(4):
-            put(g, x + dx, y, "S" if dx < 3 else "s")
     stamp(g, 26, 9, [" B", "BB", "BB"])
 
 
@@ -234,22 +223,22 @@ def face_wink(g):
     # AIRPLANE MODE: winking at the lens, because she thinks she can get out
     clear_face(g)
     stamp(g, 11, 14, [" EE ", "E  E"])
-    stamp(g, 18, 13, [" EE ", "WEeE", "sees"])
+    stamp(g, 18, 13, ["EEEE", "WeeW", " ee "])
     stamp(g, 15, 21, ["sMM"])
     put(g, 18, 20, "M")
 
 
 def face_glance_left(g):
     clear_face(g)
-    stamp(g, 11, 13, [" EE ", "EeWW", "sees"])
-    stamp(g, 18, 13, [" EE ", "EeWW", "sees"])
+    stamp(g, 11, 13, ["EEEE", "eeWW", "ee  "])
+    stamp(g, 18, 13, ["EEEE", "eeWW", "ee  "])
     stamp(g, 14, 21, ["sMMs"])
 
 
 def face_glance_right(g):
     clear_face(g)
-    stamp(g, 11, 13, [" EE ", "WWeE", "sees"])
-    stamp(g, 18, 13, [" EE ", "WWeE", "sees"])
+    stamp(g, 11, 13, ["EEEE", "WWee", "  ee"])
+    stamp(g, 18, 13, ["EEEE", "WWee", "  ee"])
     stamp(g, 14, 21, ["sMMs"])
 
 
@@ -259,31 +248,76 @@ def face_hum(g):
     stamp(g, 11, 14, ["EEEE"])
     stamp(g, 18, 14, ["EEEE"])
     stamp(g, 15, 20, ["MM", "MM"])
-    stamp(g, 26, 16, ["  WW", "  W ", "  W ", "WWW ", "WW  "])
+    stamp(g, 26, 16, ["  ZZ", "  Z ", "  Z ", "ZZZ ", "ZZ  "])
 
 
 def face_wave(g):
     """Waiting for the user's OK: she looks at you and raises a hand."""
     clear_face(g)
-    stamp(g, 11, 12, [" EE ", "EWWE", "EeEW", "sees"])
-    stamp(g, 18, 12, [" EE ", "EWWE", "WEeE", "sees"])
+    stamp(g, 11, 12, ["EEEE", "WeeW", "WeeW", " ss "])
+    stamp(g, 18, 12, ["EEEE", "WeeW", "WeeW", " ss "])
     stamp(g, 14, 21, ["sMMs"])
-    stamp(g, 24, 10, [
-        "S S S ",
-        "S S S ",
-        "SSSSS S",
-        "SSSSSSs",
-        "SSSSSs ",
-        " SSSSs ",
-        " SSSs  ",
-        "  SSs  ",
+
+
+# ---------------------------------------------------------------- hands (over glasses and earrings)
+# "@" is the sleeve of the look she wears and "&" its shade (SLEEVES below); bare arms show skin.
+
+def hand_wave(g):
+    """She raises her left hand beside her face, palm to you, fingers apart; the arm comes up from her shoulder."""
+    # the palm beside her cheek, below the star clip; fingers parted by shade, the thumb towards her face
+    stamp(g, 24, 9, [
+        "   S S  ",
+        "  SsSsS ",
+        "  SsSsSs",
+        "S SsSsSs",
+        "SSSSSSSs",
+        " SSSSSSs",
+        "  SSSSs ",
+        "  sSSs  ",
     ])
+    # the forearm straight up from the elbow, sleeved to the wrist
+    for y in range(17, 27):
+        stamp(g, 25 + (y - 17) // 7, y, ["&@@@&"])
+    # the elbow and the upper arm: out to her side and into the shoulder, so the arm grows from the body
+    for y in range(27, H):
+        edge = 16 + (9 + (y - 29) * 2) - 1 if y >= 29 else 24
+        x0 = min(26, edge - 2)
+        for x in range(x0, W):
+            put(g, x, y, "$" if x == W - 1 or (y == 27 and x > 26) else "%")
+        put(g, x0, y, "$")
+    # it moves: short strokes beside the fingers
+    stamp(g, 31, 7, ["Z"])
+    stamp(g, 31, 9, ["Z"])
+
+
+def hand_facepalm(g):
+    """Her right hand over her eyes, fingers up into the bangs, the heel at her nose. The forearm drops from her
+    face and the upper arm comes down from her shoulder: they meet in an elbow tucked low, out of the picture."""
+    stamp(g, 7, 7, [
+        " S S S   ",
+        " SsSsSs  ",
+        "SSsSsSsS ",
+        "SSsSsSsSs",
+        "SSSSSSSSs",
+        "sSSSSSSSs",
+        " SSSSSSS ",
+        " sSSSSSs ",
+        "  sSSSs  ",
+    ])
+    # the wrist
+    for y in range(16, 18):
+        stamp(g, 9, y, ["SSs"])
+    # the upper arm, from her shoulder down and a little in
+    for y in range(28, H):
+        x = (y - 28) // 2
+        for dx in range(5):
+            put(g, x + dx, y, "$" if dx == 4 else "%")
+    # the forearm, from her face down and a little out, over the upper arm: an elbow bent low
     for y in range(18, H):
-        put(g, 26 - (y - 18) // 5, y, "S")
-        put(g, 27 - (y - 18) // 5, y, "S")
-        put(g, 28 - (y - 18) // 5, y, "s")
-    stamp(g, 30, 7, ["W", " ", "W"])
-    stamp(g, 22, 8, ["W"])
+        stamp(g, 9 - (y - 18) // 8, y, ["&@@@&"])
+
+
+HANDS = {"wave": hand_wave, "oops": hand_facepalm}
 
 
 FACES = {
@@ -351,11 +385,11 @@ def siren(g):
     neck(g, 26)
     high_collar(g, "Q", "q", 25)
     torso(g, "Q", "q")
+    # the ruffles: a foam of shade on the gown only, never a speck outside her
     for y in (31, 33, 35):
         for x in range(0, W, 3):
-            put(g, x + (y % 2), y, "q")
-    stamp(g, 5, 28, ["qQQ", "QQQq"])
-    stamp(g, 24, 28, ["QQq", "qQQQ"])
+            if g[y][x + (y % 2) if x + (y % 2) < W else x] == "Q":
+                put(g, x + (y % 2), y, "q")
 
 
 def chrome(g):
@@ -549,12 +583,37 @@ def glados(g):
 
 
 BODIES = {
-    "look00": look00, "syrena": siren, "chrome": chrome, "bliss": bliss_gown,
-    "trencz": trench, "holodancer": holo_dancer, "start": start, "silver": silver_night,
-    "window": window_dress, "kombinezon": flight, "wyscigowy": racing, "pizama": pajamas,
-    "koszula": morning_shirt, "moher": mohair, "locked": locked, "plaszcz": redcoat,
+    "look00": look00, "siren": siren, "chrome": chrome, "bliss": bliss_gown,
+    "trench": trench, "holodancer": holo_dancer, "start": start, "silver": silver_night,
+    "window": window_dress, "flightsuit": flight, "racing": racing, "pyjamas": pajamas,
+    "shirt": morning_shirt, "mohair": mohair, "locked": locked, "coat": redcoat,
     "milkmaid": milkmaid, "glados": glados,
 }
+
+
+# the sleeve each look puts on her raised arm: (fill, shade); skin for bare or short-sleeved arms
+SLEEVES = {
+    "look00": ("S", "s"), "siren": ("Q", "q"), "chrome": ("V", "v"), "bliss": ("S", "s"),
+    "trench": ("U", "u"), "holodancer": ("V", "v"), "start": ("G", "g"), "silver": ("S", "s"),
+    "window": ("T", "t"), "flightsuit": ("R", "r"), "racing": ("T", "t"), "pyjamas": ("T", "t"),
+    "shirt": ("T", "t"), "mohair": ("A", "a"), "locked": ("d", "k"), "coat": ("X", "x"),
+    "milkmaid": ("S", "s"), "glados": ("I", "7"),
+}
+
+
+# a short puffed sleeve: the upper arm in the dress, the forearm bare
+UPPER = {"look00": ("T", "t"), "milkmaid": ("T", "t")}
+
+
+def sleeve_colors(body):
+    fill, shade = SLEEVES[body]
+    up, up_shade = UPPER.get(body, (fill, shade))
+    return fill, shade, up, up_shade
+
+
+def sleeve(rows, body):
+    fill, shade, up, up_shade = sleeve_colors(body)
+    return [r.replace("@", fill).replace("&", shade).replace("%", up).replace("$", up_shade) for r in rows]
 
 
 # ---------------------------------------------------------------- accessories (per look)
@@ -562,19 +621,14 @@ BODIES = {
 def acc_shield(g):
     """Clay-orange tinted wraparound shield sunglasses (Cyber trench, Bliss gown)."""
     for x in range(9, 24):
-        put(g, x, 13, "6")
-        put(g, x, 14, "5")
-        put(g, x, 15, "5" if 10 < x < 22 else ".")
-    put(g, 16, 15, "6")
-    put(g, 12, 14, "W")
-    put(g, 19, 14, "W")
-
-
-def acc_rimless(g):
-    """Small clay-tinted rimless sunglasses (Holo dancer)."""
-    stamp(g, 11, 13, ["5555", "5W55", " 55 "])
-    stamp(g, 18, 13, ["5555", "55W5", " 55 "])
-    put(g, 16, 13, "6")
+        put(g, x, 12, "<")
+        put(g, x, 13, ">")
+        put(g, x, 14, ">")
+    for x in list(range(10, 16)) + list(range(17, 23)):
+        put(g, x, 15, ">")
+    put(g, 16, 15, "<")
+    stamp(g, 11, 13, ["WW", " W"])
+    stamp(g, 18, 13, ["WW", " W"])
 
 
 def acc_pushed_up(g):
@@ -620,7 +674,7 @@ def acc_porcelain(g):
 
 
 ACCESSORIES = {
-    "shield": acc_shield, "rimless": acc_rimless, "pushedUp": acc_pushed_up,
+    "shield": acc_shield, "pushedUp": acc_pushed_up,
     "hoops": acc_hoops, "choker": acc_choker, "beret": acc_beret, "porcelain": acc_porcelain,
 }
 
@@ -641,55 +695,239 @@ def prop_glasses(g):
 
 
 def prop_magnifier(g):
-    stamp(g, 0, 23, [" VVVV ", "VBBWBV", "VBBBBV", "VBBBBV", " VVVV ", "    dd", "     dd", "      dd"])
+    """A big magnifier: silver rim, glass with a glint, a wooden handle."""
+    stamp(g, 0, 19, [
+        "   vVVVVv    ",
+        "  vBBBBWWv   ",
+        " vBBBBBBWBv  ",
+        " VBBBBBBBBV  ",
+        " VBBBBBBBBV  ",
+        " VBBBBBBBBV  ",
+        " vBBBBBBBBv  ",
+        "  vBBBBBBv   ",
+        "   vVVVVvO   ",
+        "         OO  ",
+        "          OO ",
+        "           OO",
+        "            O",
+    ])
 
 
 def prop_hardhat(g):
-    stamp(g, 6, 0, ["      HHHHHHH       ", "   HHHHHhHHHHHHH    ", "  HHHHHHhHHHHHHHH   ", " HHHHHHHhHHHHHHHHH  "])
-    for x in range(3, 29):
-        put(g, x, 4, "h")
+    """A hard hat worn the way people wear one: deep over the crown and all of her bangs, a rib
+    down the middle, a glint on one side, the brim just over her eyes, the bob out at the sides."""
+    stamp(g, 4, 0, [
+        "       HHHHHHHHHH       ",
+        "    HHHYYHHHhHHHHHHH    ",
+        "  HHHHYYHHHHhHHHHHHHHH  ",
+        " HHHHYYHHHHHhHHHHHHHHHH ",
+        "HHHHHYHHHHHHhHHHHHHHHHHH",
+        "HHHHYYHHHHHHhHHHHHHHHHHH",
+        "HHHHYHHHHHHHhHHHHHHHHHHH",
+        "HHHHHHHHHHHHhHHHHHHHHHHH",
+        "HHHHHHHHHHHHhHHHHHHHHHHH",
+        "HHHHHHHHHHHHhHHHHHHHHHHH",
+        "hHHHHHHHHHHHhHHHHHHHHHHh",
+    ])
+    # the brim, a little wider than the hat, right over her brows
+    for x in range(2, 30):
+        put(g, x, 11, "h")
 
 
 def prop_globe(g):
-    stamp(g, 25, 21, [" NNNN ", "NnnNNN", "NnnnNN", "NNnNnN", "NNNnnN", " NNNN ", "  dd  ", " dddd "])
+    """A desk globe: oceans, two continents, a stand."""
+    stamp(g, 20, 19, [
+        "   NNNNN   ",
+        "  NnnNNNN  ",
+        " NnnnnNNNN ",
+        " NNnnnNnnN ",
+        "NNNNnNNnnNN",
+        "NNNNNNnnnNN",
+        " NNNNNNnnN ",
+        " NNNNNNNNN ",
+        "  NNNNNNN  ",
+        "   NNNNN   ",
+        "    vVv    ",
+        "     V     ",
+        "  ddddddd  ",
+        " ddddddddd ",
+    ])
 
 
 def prop_pencil(g):
-    stamp(g, 24, 22, ["      o", "     oO", "    OOO", "   OOO ", "  OOO  ", " OOO   ", " SO    ", " E     "])
+    """A long yellow pencil, held up: eraser, ferrule, wood, lead."""
+    rows = [
+        "         oo ",
+        "        ooo ",
+        "       VVV  ",
+        "      OOOh  ",
+        "     OOOh   ",
+        "    OOOh    ",
+        "   OOOh     ",
+        "  OOOh      ",
+        " SSSh       ",
+        " SS         ",
+        " E          ",
+    ]
+    stamp(g, 20, 22, rows)
 
 
 def prop_coffee(g):
-    stamp(g, 24, 25, ["  W W ", "   W  ", "UUUUU ", "UmmmUU", "UUUUU U", "UUUUUU ", " uuu  "])
+    """A big cobalt mug with coffee and steam."""
+    stamp(g, 21, 21, [
+        "  W   W   ",
+        "   W   W  ",
+        "  W   W   ",
+        "UUUUUUUU  ",
+        "UmmmmmmUUU",
+        "UUUUUUUU U",
+        "UUUUUUUU U",
+        "UUUUUUUU U",
+        "UUUUUUUUUU",
+        "UUUUUUUU  ",
+        " uuuuuu   ",
+    ])
 
 
 def prop_cake(g):
     """THE CAKE IS NOT A LIE: the cake is real."""
-    stamp(g, 23, 25, ["   Y   ", "   X   ", " TTTTT ", "TPTPTPT", "OOOOOOO", "ooooooo", "OOOOOOO"])
+    stamp(g, 20, 21, [
+        "     Y     ",
+        "    YY     ",
+        "     X     ",
+        "  TTTTTTT  ",
+        " TPTTPTTPT ",
+        " TTTTTTTTT ",
+        " OOOOOOOOO ",
+        " ooooooooo ",
+        " OOOOOOOOO ",
+        " ooooooooo ",
+        "VVVVVVVVVVV",
+    ])
 
 
 def prop_notebook(g):
-    """Plan mode: glasses and a notebook."""
+    """Plan mode: glasses and a big notebook with a cobalt cover and a silver spiral."""
     prop_glasses(g)
-    stamp(g, 23, 25, ["TTTTTTT", "TLLLLtT", "TttttTT", "TLLLtTT", "TttttTT", "TLLtTTT", "TTTTTTT"])
-    for y in range(25, 32):
-        put(g, 22, y, "C" if y % 2 else "c")
+    prop_book(g)
+
+
+def prop_book(g):
+    """The notebook alone, for looks that already wear glasses."""
+    stamp(g, 21, 21, [
+        " UUUUUUUUU",
+        " UTTTTTTTU",
+        " UuuuuuuuU",
+        " UTTTTTTuU",
+        " UuuuuuuuU",
+        " UTTTTTuuU",
+        " UuuuuuuuU",
+        " UTTTTuuuU",
+        " UuuuuuuuU",
+        " UUUUUUUUU",
+    ])
+    for y in range(21, 31):
+        put(g, 21, y, "V" if y % 2 else "v")
+
+
+def prop_candle(g):
+    """All Saints' Day: a red grave candle (znicz) with a gold lid and a small flame."""
+    stamp(g, 21, 20, [
+        "    Y    ",
+        "   YYY   ",
+        "   YRY   ",
+        "    R    ",
+        " hHHHHHh ",
+        " HhHhHhH ",
+        "XXXXXXXXX",
+        "XxXXXXXxX",
+        "XxXXXXXxX",
+        "XxXXXXXxX",
+        "XXXXXXXXX",
+        " xxxxxxx ",
+    ])
+
+
+def prop_santa(g):
+    """Christmas: a red Santa hat on top of the bob, white fur brim, the tip flopping to a pompom."""
+    stamp(g, 0, 0, [
+        "          XXXXXXXX              ",
+        "        XXXXXXXXXXXXXx          ",
+        "       XXXXXXXXXXXXXXXXxx       ",
+        "      XXXXXXXXXXXXXXXXXXXxxx    ",
+        "     XXXXXXXXXXXXXXXXXXXXXXxx TT",
+        "   tTTTTTTTTTTTTTTTTTTTTTTTt TTT",
+        "   TTTTTTTTTTTTTTTTTTTTTTTTT  t ",
+    ])
 
 
 PROPS = {
     "glasses": prop_glasses, "magnifier": prop_magnifier, "hardhat": prop_hardhat,
-    "globe": prop_globe, "pencil": prop_pencil, "coffee": prop_coffee, "cake": prop_cake, "notebook": prop_notebook,
+    "globe": prop_globe, "pencil": prop_pencil, "coffee": prop_coffee, "cake": prop_cake, "notebook": prop_notebook, "book": prop_book, "candle": prop_candle, "santa": prop_santa,
 }
 
-MINI = [
-    ".KCKK.",
-    "KKCKKK",
-    "KSSSSK",
-    "KESSEK",
-    "KSSMSK",
-    ".SSSS.",
-    "TTTTTT",
-    "TTTTTT",
+# A little Claudia per working subagent: her bob, the one streak, the star clip, a headset.
+MINI_BASE = [
+    "..KKKK..",
+    ".KCKKKKK",
+    "KKCKKKCK",
+    "KCSSSSKK",
+    "KSESSESK",
+    "KSSSSSSL",
+    "KSSMMSSL",
+    "KK.SS.KK",
+    ".TTTTTT.",
+    "TTTTTTTT",
 ]
+# by agent type: a blouse colour and what she holds (drawn from row 3, beside her)
+MINI_KINDS = {
+    "general": ("T", []),
+    "explore": ("U", [".VV.", "VBWV", "VBBV", ".VV.", "O...", "...."]),   # magnifier
+    "plan": ("G", ["....", "LULU", "UUUU", "UTTU", "UUUU", "UUUU"]),      # a spiral notebook, a label on its cover
+    "review": ("X", ["....", ".LL.", "OTTO", "OLLO", "OTTO", "OLTO", "OOOO"]),  # a clipboard: the clip, lines of text
+}
+
+
+def mini(kind):
+    body, item = MINI_KINDS[kind]
+    width = len(MINI_BASE[0]) + max((len(r) for r in item), default=0)
+    g = [list(r.ljust(width, ".")) for r in MINI_BASE]
+    for y in (8, 9):
+        g[y] = [body if c == "T" else c for c in g[y]]
+    for dy, row in enumerate(item):
+        for dx, c in enumerate(row):
+            if c != "." and 3 + dy < len(g):
+                g[3 + dy][8 + dx] = c
+    while len(g[0]) > len(MINI_BASE[0]) and all(r[-1] == "." for r in g):  # no empty columns at the right
+        g = [r[:-1] for r in g]
+    return ["".join(r) for r in g]
+
+
+MINIS = {k: mini(k) for k in MINI_KINDS}
+
+
+# ---------------------------------------------------------------- the band's Claudia (a narrow window)
+# The helpers' chibi (MINI_BASE), with a face for each mood; "T" is her dress, coloured by her look.
+BAND_FACES = {
+    "rest": {},
+    "talk": {6: "KSSmmSSL"},
+    "think": {0: "..KKKK.Z", 4: "KSSESSEK", 6: "KSSSMSSL"},
+    "happy": {5: "KPSSSSPL", 6: "KSSmmSSL"},
+    "oops": {4: "KESSSSEK", 5: "KSESSESL", 6: "KSMSMSSL"},
+    "nervous": {3: "KCSSSSKB", 4: "KSWSSWSK", 6: "KSSMSSSL"},
+    "sleep": {0: "..KKKKZ.", 4: "KSEESEEK", 6: "KSSSMSSL"},
+    "wave": {3: "KCSSSSKS", 4: "KSESSESS", 5: "KSSSSSSS"},
+}
+
+
+def band_face(name):
+    rows = list(MINI_BASE)
+    for y, row in BAND_FACES[name].items():
+        rows[y] = row
+    return rows
+
+
+BAND = {k: band_face(k) for k in BAND_FACES}
 
 
 # ---------------------------------------------------------------- export
@@ -717,21 +955,23 @@ def compose(body, mic=None, face=None, acc=(), prop=None):
     if mic:
         over(g, layer(MICS[mic]))
     if face:
-        over(g, layer(FACES[face], h))
+        over(g, layer(FACES[face]))
     for a in acc:
         over(g, layer(ACCESSORIES[a]))
+    if face in HANDS:
+        over(g, sleeve(layer(HANDS[face]), body))
     if prop:
         over(g, layer(PROPS[prop]))
     return g
 
 
 PREVIEW_LOOKS = [
-    ("look00", "headset", ()), ("syrena", "headset", ()), ("chrome", "headset", ()),
-    ("bliss", "boom", ("shield",)), ("trencz", "boom", ("shield", "hoops")),
-    ("holodancer", "boom", ("rimless",)), ("start", "boom", ("pushedUp",)),
-    ("silver", "boom", ("choker",)), ("window", "boom", ()), ("kombinezon", "boom", ()),
-    ("wyscigowy", "headset", ()), ("pizama", "headset", ()), ("koszula", "headset", ()),
-    ("moher", "headset", ()), ("locked", "headset", ()), ("plaszcz", "headset", ("beret",)),
+    ("look00", "headset", ()), ("siren", "headset", ()), ("chrome", "headset", ()),
+    ("bliss", "boom", ("shield",)), ("trench", "boom", ("shield", "hoops")),
+    ("holodancer", "boom", ()), ("start", "boom", ("pushedUp",)),
+    ("silver", "boom", ("choker",)), ("window", "boom", ()), ("flightsuit", "boom", ()),
+    ("racing", "headset", ()), ("pyjamas", "headset", ()), ("shirt", "headset", ()),
+    ("mohair", "headset", ()), ("locked", "headset", ()), ("coat", "headset", ("beret",)),
     ("milkmaid", "headset", ()), ("glados", None, ("porcelain",)),
 ]
 
@@ -779,7 +1019,14 @@ def to_ts(path):
         *[f"  {k}: {arr(layer(fn))}," for k, fn in MICS.items()],
         "}",
         "export const FACES = {",
-        *[f"  {k}: {arr(layer(fn, h))}," for k, fn in FACES.items()],
+        *[f"  {k}: {arr(layer(fn))}," for k, fn in FACES.items()],
+        "}",
+        "export const HANDS: Partial<Record<keyof typeof FACES, string[]>> = {",
+        *[f"  {k}: {arr(layer(fn))}," for k, fn in HANDS.items()],
+        "}",
+        "/** Her raised arm per look: forearm fill and shade (@ &), upper arm fill and shade (% $). */",
+        "export const SLEEVES: Record<string, [string, string, string, string]> = {",
+        *[f"  {k}: [{', '.join(repr(c) for c in sleeve_colors(k))}]," for k in SLEEVES],
         "}",
         "export const BODIES = {",
         *[f"  {k}: {arr(layer(fn))}," for k, fn in BODIES.items()],
@@ -790,7 +1037,15 @@ def to_ts(path):
         "export const PROPS = {",
         *[f"  {k}: {arr(layer(fn))}," for k, fn in PROPS.items()],
         "}",
-        f"export const MINI = {arr(MINI)}",
+        "/** The band's Claudia: the helpers' chibi with a face per mood; T is her dress. */",
+        "export const BAND = {",
+        *[f"  {k}: {arr(v)}," for k, v in BAND.items()],
+        "}",
+        "export type BandFace = keyof typeof BAND",
+        "export const MINIS = {",
+        *[f"  {k}: {arr(v)}," for k, v in MINIS.items()],
+        "}",
+        "export type MiniKind = keyof typeof MINIS",
         "export type Face = keyof typeof FACES",
         "export type Body = keyof typeof BODIES",
         "export type Accessory = keyof typeof ACCESSORIES",

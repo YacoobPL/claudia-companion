@@ -1,9 +1,6 @@
 {
   "_comment": "Copy to local.json (ignored by git). Every key is optional.",
-  "project": {
-    "en": "Acme Shop (a Next.js storefront with a Postgres backend)",
-    "pl": "Acme Shop (sklep w Next.js z bazą Postgres)"
-  },
+  "project": "Acme Shop (a Next.js storefront with a Postgres backend)",
   "repos": ["web", "api"],
   "defaults": {
     "isCommenting": false,
@@ -13,12 +10,11 @@
     "isNotifying": true
   },
   "strings": {
-    "en": {
-      "push": "Push. Main is protected, use a PR.",
-      "noVerify": "Skipping the hook? Our pre-commit runs the linter on purpose."
-    },
-    "pl": {
-      "push": "Push. Main jest chroniony, zrób PR."
-    }
+    "push": "Push. Main is protected, use a PR.",
+    "noVerify": "Skipping the hook? Our pre-commit runs the linter on purpose."
+  },
+  "words": {
+    "thanks": ["cheers", "ta"],
+    "reminders": ["waiting for review"]
   }
 }
