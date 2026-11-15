@@ -245,12 +245,14 @@ export function cellsFor(f: Frame): string {
 
 const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`
 
-/** The same pixels as SVG rectangles, for the desktop app, the editor and the phone. */
-export function svgFor(f: Frame): string {
-  const id = `svg|${frameId(f)}`
+/** The same pixels as SVG rectangles, for the desktop app, the editor and the phone; `over` paints them all (a locked look's silhouette). */
+export function svgFor(f: Frame, over?: Tint): string {
+  const id = `svg|${over ? 'over|' : ''}${frameId(f)}`
   const hit = cache.get(id)
   if (hit) return hit
-  const { grid, tint } = gridFor(f)
+  const drawn = gridFor(f)
+  const grid = drawn.grid
+  const tint = over ?? drawn.tint
   const w = grid[0]?.length ?? ART_COLUMNS
   const h = grid.length
   const rects: string[] = []

@@ -1,7 +1,7 @@
 // Claudia: open character by anabology (claudia.gallery). Fan work, not affiliated with Anthropic.
 import { atom, read, update } from 'claude-code'
 import type { Atom } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderSurface } from 'claude-code'
 
 import type { ChatTurn, Display, GoalInfo, HelperKind, LineId, Mood, PropName, RepoInfo, Size } from '../types'
 import { FACES } from './art'
@@ -449,6 +449,8 @@ let active = false
 /** Whether a surface draws the pane now: animations pause while it does not. */
 let visible = false
 let platform: 'win' | 'mac' | 'linux' | null = null
+/** Where she is drawn (the terminal, the desktop app, the editor, the phone): what `doctor` checks. */
+let drawnOn: RenderSurface | null = null
 let isPlanning = false
 let errorsThisTurn = 0
 let errorStreak = 0
@@ -2126,6 +2128,8 @@ async function demo($: EngineInterface) {
 }
 
 /** /claudia doctor: what she sees of the terminal, the pane and her settings, with tips. */
+const SURFACE_NAMES: Record<string, string> = { desktop: 'the desktop app', vscode: 'the editor', mobile: 'the phone' }
+
 async function doctor($: EngineInterface): Promise<string> {
   // each variable by its literal name: the host lists what a plugin reads
   const env = async (read: () => Promise<string | undefined>) => {
@@ -2143,15 +2147,21 @@ async function doctor($: EngineInterface): Promise<string> {
     // no manifest to read
   }
   out.push(`✓ claudia-companion ${version} on ${platform ?? 'an unknown system'}`)
-  const term =
-    (await env(() => $.env.get('TERM_PROGRAM'))) ||
-    ((await env(() => $.env.get('WT_SESSION'))) ? 'Windows Terminal' : '') ||
-    (await env(() => $.env.get('TERM'))) ||
-    'unknown'
-  const color = await env(() => $.env.get('COLORTERM'))
-  const isRich = /truecolor|24bit/i.test(color) || /Windows Terminal|iTerm|WezTerm|ghostty|vscode|kitty|Apple_Terminal/i.test(term)
-  out.push(`${isRich ? '✓' : '!'} terminal: ${term}${color ? ` (${color})` : ''}`)
-  if (!isRich) out.push('    her colours need 24-bit colour; Windows Terminal, iTerm2, WezTerm or Ghostty show her best')
+  // off the terminal she is SVG: no terminal, no cells, no wider pixels to check
+  const isTerminal = drawnOn === null || drawnOn === 'terminal'
+  if (isTerminal) {
+    const term =
+      (await env(() => $.env.get('TERM_PROGRAM'))) ||
+      ((await env(() => $.env.get('WT_SESSION'))) ? 'Windows Terminal' : '') ||
+      (await env(() => $.env.get('TERM'))) ||
+      'unknown'
+    const color = await env(() => $.env.get('COLORTERM'))
+    const isRich = /truecolor|24bit/i.test(color) || /Windows Terminal|iTerm|WezTerm|ghostty|vscode|kitty|Apple_Terminal/i.test(term)
+    out.push(`${isRich ? '✓' : '!'} terminal: ${term}${color ? ` (${color})` : ''}`)
+    if (!isRich) out.push('    her colours need 24-bit colour; Windows Terminal, iTerm2, WezTerm or Ghostty show her best')
+  } else {
+    out.push(`✓ drawn in: ${SURFACE_NAMES[drawnOn!] ?? drawnOn}, as SVG scaled to the pane`)
+  }
   const shown = await read($, display)
   out.push(`✓ shows as: ${M.displayNames[shown]}`)
   if (lastPane.columns) {
@@ -2162,8 +2172,10 @@ async function doctor($: EngineInterface): Promise<string> {
   } else if (shown === 'pane') {
     out.push('! the pane has not been drawn yet: /claudia opens it')
   }
-  out.push('✓ symbols like ⏱ ⚙ ☑ count as two cells, so her lines never wrap')
-  out.push(`${(await read($, isWide)) ? '✓' : '·'} wider pixels ${(await read($, isWide)) ? 'on' : 'off'}: turn on (/claudia wide on) if she looks squeezed`)
+  if (isTerminal) {
+    out.push('✓ symbols like ⏱ ⚙ ☑ count as two cells, so her lines never wrap')
+    out.push(`${(await read($, isWide)) ? '✓' : '·'} wider pixels ${(await read($, isWide)) ? 'on' : 'off'}: turn on (/claudia wide on) if she looks squeezed`)
+  }
   try {
     const git = await $.process.run(['git', '--version'], { timeoutMs: 5000 })
     out.push(`${git.exitCode === 0 ? '✓' : '!'} git: ${git.stdout.trim() || 'not found'}`)
@@ -2228,6 +2240,14 @@ async function shareCard($: EngineInterface): Promise<string> {
 
 /** A locked look in the wardrobe: her outline only. */
 const SILHOUETTE: Tint = () => 0x34343e
+
+/** She puts on a look picked in the wardrobe, for every session. */
+async function wear($: EngineInterface, k: LookKey) {
+  await update($, outfitPick, () => k)
+  await $.store.set('outfitPick', k)
+  await set($, 'happy', S.outfitDressedLine(S.looks[k]))
+  calmDown($, 5000)
+}
 
 function lockedCellsFor(f: Frame): string {
   const id = `locked|${frameId(f)}`
@@ -2931,6 +2951,7 @@ async function wake($: EngineInterface) {
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     cwd = e.cwd.replace(/\\/g, '/')
+    drawnOn = e.surface ?? drawnOn
     await $.command.register({ name: 'claudia', description: S.commandDescription })
     if (e.isInteractive) await wake($)
     return next(e)
@@ -2938,6 +2959,7 @@ export const register: Register = on => {
 
   // the desktop app runs the session through the SDK: not interactive, so she wakes when it connects
   on('session.attach', async ($, e, next) => {
+    drawnOn = e.surface
     await wake($)
     return next(e)
   })
@@ -3672,18 +3694,7 @@ ${M.recapSession(duration(openNow(ses, now)), duration(ses.workMs))}` : ''
             <Box paddingX={1} marginTop={1}>
               <Button key="w-prev" label="◀" onPress={() => update($, wardrobeAt, n => n - 1)} />
               <Button key="w-next" label="▶" autoFocus onPress={() => update($, wardrobeAt, n => n + 1)} />
-              {isOpen && (
-                <Button
-                  key="w-wear"
-                  label={M.wear}
-                  onPress={async () => {
-                    await update($, outfitPick, () => k)
-                    await $.store.set('outfitPick', k)
-                    await set($, 'happy', S.outfitDressedLine(S.looks[k]))
-                    calmDown($, 5000)
-                  }}
-                />
-              )}
+              {isOpen && <Button key="w-wear" label={M.wear} onPress={() => wear($, k)} />}
               <Button key="w-done" label={M.done} onPress={() => update($, view, () => 'main')} />
             </Box>
           </Box>
@@ -3892,8 +3903,38 @@ ${M.recapSession(duration(openNow(ses, now)), duration(ses.workMs))}` : ''
     }
 
     // The desktop app, the editor and the phone: the same pixels as SVG, the same words.
-    const { Box, Text, Svg } = $.ui.resolve(e)
+    const { Box, Text, Svg, Button } = $.ui.resolve(e)
     const svgFrame: Frame = { ...frame, tier: frame.tier === 'head' ? 'head' : 'full', wide: false }
+
+    if (isWardrobe) {
+      const keys = Object.keys(LOOKS) as LookKey[]
+      const at = (((await seen($, wardrobeAt)) % keys.length) + keys.length) % keys.length
+      const k = keys[at]!
+      const isOpen = isUnlocked(k, bond?.badges)
+      const need = LOCKS[k]
+      const wf: Frame = { key: k, face: null, extra: null, step: 0, tier: svgFrame.tier, wide: false }
+      return (
+        <Box flexDirection="column">
+          <Text color="#D97757" weight="bold">
+            ✷ {M.wardrobeTitle(keys.filter(x => isUnlocked(x, bond?.badges)).length, keys.length)}
+          </Text>
+          <Svg source={isOpen ? svgFor(wf) : svgFor(wf, SILHOUETTE)} alt={isOpen ? S.looks[k] : `🔒 ${S.looks[k]}`} />
+          <Text weight="bold">{isOpen ? S.looks[k] : `🔒 ${S.looks[k]}`}</Text>
+          <Text dimColor>
+            {S.films[LOOKS[k].film].title}
+            {k === key ? ` · ${M.wearing}` : ''}
+          </Text>
+          {!isOpen && need && <Text dimColor>{M.unlockWith(M.badges[need])}</Text>}
+          <Box marginTop={1}>
+            <Button key="w-prev" label="◀" onPress={() => update($, wardrobeAt, n => n - 1)} />
+            <Button key="w-next" label="▶" onPress={() => update($, wardrobeAt, n => n + 1)} />
+            {isOpen && <Button key="w-wear" label={M.wear} onPress={() => wear($, k)} />}
+            <Button key="w-done" label={M.done} onPress={() => update($, view, () => 'main')} />
+          </Box>
+        </Box>
+      )
+    }
+
     return (
       <Box flexDirection="column">
         <Svg source={svgFor(svgFrame)} alt={`Claudia: ${text}`} />

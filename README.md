@@ -244,7 +244,7 @@ Moods: `happy`, `oops`, `nervous`, `think`, `wave`, `blush`, `idle`. Your plugin
 ## Notes
 
 - Mods for Claude Code use an **early-access API** that may change between Claude Code releases.
-- Built and tested on Claude Code 2.1.323, on Windows Terminal (dark and light themes). The desktop app, the editor extensions, macOS and Linux are written for but not yet tried by us: a report from there is welcome.
+- Built and tested on Claude Code 2.1.323, on Windows Terminal (dark and light themes), and tried in the Claude desktop app on Windows: her pane, her looks, the wardrobe and the band (her words above the prompt, without her picture). The editor extensions, macOS and Linux are written for but not yet tried by us: a report from there is welcome.
 - Other terminals draw some symbols (⏱ 🕐 ☑ ▰) at a different width: `/claudia doctor` shows what she sees of yours.
 - What changed between versions: [CHANGELOG.md](CHANGELOG.md).
 

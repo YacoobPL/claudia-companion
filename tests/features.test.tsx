@@ -163,6 +163,26 @@ test('the wardrobe: a look at a time, locked ones as an outline', SLOW, async ($
   await ui.unmount()
 })
 
+test('the desktop app: the wardrobe as SVG with its buttons, and doctor asks after no terminal', SLOW, async ($, on) => {
+  engine(on)
+  on('session.attach', (_: unknown, e: { clientId: string }) => ({ clientId: e.clientId }))
+  await $.session.start({ cwd: '/w', surface: null, isInteractive: false })
+  await $.session.attach({ surface: 'desktop', clientId: 'desktop:default' } as never)
+  const report = await run($, 'doctor')
+  expect(report).toContain('drawn in: the desktop app')
+  expect(report).not.toContain('terminal:')
+  expect(report).not.toContain('wider pixels')
+
+  expect(await run($, 'wardrobe glados')).toContain('Wardrobe')
+  const ui = await $.ui.mount({ ...pane(), surface: 'desktop' })
+  expect(await ui.find({ type: 'Svg' })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /🔒/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Text', text: /Ten cakes/ })).toBeTruthy()
+  expect(await ui.find({ type: 'Button', key: 'w-next' })).toBeTruthy()
+  expect(await ui.find({ type: 'Button', key: 'w-wear' })).toBeFalsy()
+  await ui.unmount()
+})
+
 test('the share card: an SVG saved under ~/.claude/claudia', SLOW, async ($, on) => {
   const box: Box = { said: [], written: {} }
   engine(on, { onboarded: true }, box)

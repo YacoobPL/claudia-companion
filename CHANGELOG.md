@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2
+
+- Tried in the Claude desktop app on Windows; the README says so.
+- **The wardrobe in the desktop app** (and the editor, the phone): it showed only its title. Each look is drawn as SVG, a locked one as its silhouette, with its name, its film, the badge that opens it, and the buttons ◀ ▶, Wear and Done.
+- **`/claudia doctor` off the terminal** no longer warns of an unknown terminal and its colours: it says where she is drawn (`drawn in: the desktop app, as SVG scaled to the pane`), and leaves out the terminal's cells and wider pixels.
+
 ## 0.4.1
 
 - Her open mouth drawn anew (talking, singing, yawning): her teeth, the dark of her mouth and her lower lip, in place of a ring of lip round a dark middle. A new screenshot of her pane; the social image names the fan work's author.
