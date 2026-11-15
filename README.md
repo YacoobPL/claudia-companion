@@ -16,7 +16,7 @@ Claudia is the **open character by [anabology](https://claudia.gallery)**, the s
 - [Her looks and her memory](#her-looks-and-her-memory)
 - [Your stack](#your-stack)
 - [Extending her](#extending-her)
-- [Reporting a problem](#reporting-a-problem)
+- [Problems and ideas](#problems-and-ideas)
 
 ## Install
 
@@ -248,9 +248,9 @@ Moods: `happy`, `oops`, `nervous`, `think`, `wave`, `blush`, `idle`. Your plugin
 - Other terminals draw some symbols (⏱ 🕐 ☑ ▰) at a different width: `/claudia doctor` shows what she sees of yours.
 - What changed between versions: [CHANGELOG.md](CHANGELOG.md).
 
-## Reporting a problem
+## Problems and ideas
 
-Open an issue: [github.com/YacoobPL/claudia-companion/issues](https://github.com/YacoobPL/claudia-companion/issues). It helps to say:
+**Something wrong?** Open an issue: [github.com/YacoobPL/claudia-companion/issues](https://github.com/YacoobPL/claudia-companion/issues). It helps to say:
 
 - what `/claudia doctor` prints (your terminal, its colours, the widths of her symbols, what she could not read);
 - your Claude Code version (`claude --version`), your system and your terminal;
@@ -258,6 +258,8 @@ Open an issue: [github.com/YacoobPL/claudia-companion/issues](https://github.com
 - what you did, what she did, and what you expected of her.
 
 Check a screenshot or a pasted line for anything private first: her lines can show file names, branch names and your costs. A line of hers that does not fit the moment is a bug too: say what happened and what she said.
+
+**An idea, a question, something to show?** Start a thread in [Discussions](https://github.com/YacoobPL/claudia-companion/discussions) (an issue with a title that starts with `Idea:` works too). A new line of hers, a look from one of her films, a mood, a tool or a stack she should know, a terminal she should fit: all welcome. For a line, say the moment it belongs to; for a look, the film and the scene. Pull requests are welcome as well: `python claudia_art.py preview.png hooks/art.ts` draws her again after a change to her pixels, and `claude plugin test .` runs the tests.
 
 ## Credits
 
