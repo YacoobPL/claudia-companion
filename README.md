@@ -187,7 +187,7 @@ Never sent: file contents, diffs, command output, full command lines. Your promp
 - **Quieter:** `/claudia quiet` (an hour of focus: only questions, OKs and errors), `/claudia sound off`, `/claudia notify off`.
 - **Still:** `/claudia calm on`: no dancing, bouncing, blinking or lip flaps, for anyone who prefers reduced motion.
 - **Hidden:** `/claudia display status` leaves only her word under the prompt; closing her pane hides her until you type `/claudia`.
-- **Gone:** `/plugin uninstall claudia-companion`. Your overlay and cards stay in `~/.claude/claudia/`, and her memory (counts, badges, settings) in `~/.claude/plugins/store/claudia-companion_*.json`; delete those too if you want nothing left.
+- **Gone:** `/plugin uninstall claudia-companion`. Your overlay and cards stay in `~/.claude/claudia/`, and her memory (counts, badges, settings) in `~/.claude/plugins/store/claudia-companion_*.json`; delete those too if you want nothing left. The marketplace entry goes with `/plugin marketplace remove claudia-companion`.
 
 ## Her looks and her memory
 
