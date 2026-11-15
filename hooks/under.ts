@@ -1,8 +1,9 @@
 // The lines under Claudia: Claude's task list, this turn, the plan's limits, background tasks, the
 // permission mode, today. Pure functions: each takes what is known and the pane's width, and returns
 // a line that fits it, or null when there is nothing to show.
-import type { DayInfo, GoalInfo, LimitInfo, LineId, OthersInfo, SessionInfo, TodoInfo, TurnInfo } from '../types'
+import type { DayInfo, GoalInfo, HelperKind, LimitInfo, LineId, OthersInfo, RepoInfo, SessionInfo, TodoInfo, TurnInfo } from '../types'
 import type { More } from './bond'
+import type { Strings } from './i18n'
 
 /** In order of importance: when the pane is short, the last ones give way. */
 export const LINES: readonly LineId[] = ['tasks', 'goal', 'turn', 'session', 'context', 'limits', 'background', 'sessions', 'mode', 'git', 'day']
@@ -191,4 +192,71 @@ export function dayLine(M: More, d: DayInfo | null, width: number): string | nul
   if (!d || !num(d.turns)) return null
   const clean = { streak: Math.max(1, Math.round(num(d.streak))), turns: Math.round(num(d.turns)), commits: Math.round(num(d.commits)), cakes: Math.round(num(d.cakes)) }
   return firstFitting(width, M.day(clean), M.dayShort(clean), `🔥 ${clean.streak}`)
+}
+
+/**
+ * The context line (how full the context window is, read like the limits under it), fitted to the
+ * pane: the word "cost" goes first, then the cost, then the word "context", then the bar shortens,
+ * so the line never wraps.
+ */
+export function contextLine(T: Strings, used: number, usd: number | null, width: number) {
+  const pct = ` ${used}%`
+  const money = usd === null || !Number.isFinite(usd) || usd < 0 ? '' : `$${usd < 100 ? usd.toFixed(2) : Math.round(usd)}`
+  const cost = money ? ` · ${T.cost} ${money}` : ''
+  const costShort = money ? ` · ${money}` : ''
+  for (const [label, bars, tail] of [
+    [T.context, 10, pct + cost],
+    [T.context, 10, pct + costShort],
+    [T.context, 10, pct],
+    ['', 10, pct + costShort],
+    ['', 10, pct],
+    ['', 6, pct],
+    ['', 4, pct],
+    ['', 3, ''],
+  ] as const) {
+    if (cells(label) + bars + cells(tail) <= width) {
+      return { label, bars, filled: Math.round((used / 100) * bars), tail }
+    }
+  }
+  return null
+}
+
+/** How many rows a text takes in a pane of this width, wrapped at its words (a word longer than a row is broken). */
+export function wrappedRows(text: string, width: number): number {
+  let rows = 1
+  let used = 0
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const w = cells(word)
+    if (used && used + 1 + w <= width) used += 1 + w
+    else if (w <= width) {
+      if (used) rows += 1
+      used = w
+    } else {
+      // a long word fills what is left of its rows
+      const first = used ? width - used - 1 : width
+      const rest = Math.max(0, w - Math.max(0, first))
+      rows += Math.ceil(rest / width) + (used && first <= 0 ? 1 : 0)
+      used = rest % width || width
+    }
+  }
+  return rows
+}
+
+/** A repository's git line: the name gives way first, so the counts stay readable. */
+export function gitLine(T: Strings, r: RepoInfo, width: number): string {
+  const full = T.gitShort(r.name, r.dirty, r.ahead)
+  if (cells(full) <= width) return full
+  const tail = T.gitShort('', r.dirty, r.ahead)
+  const room = width - cells(tail)
+  if (room < 4) return fitLine(full, width)
+  return `${r.name.slice(0, room - 1)}…${tail}`
+}
+
+/** `helpers: Explore ×2 · Plan`, or just the count when the kinds do not fit. */
+export function crewLine(T: Strings, kinds: readonly HelperKind[], width: number): string {
+  const counts = new Map<HelperKind, number>()
+  for (const k of kinds) counts.set(k, (counts.get(k) ?? 0) + 1)
+  const parts = [...counts].map(([k, n]) => (n > 1 ? `${T.helperKinds[k]} ×${n}` : T.helperKinds[k]))
+  const long = `${T.helpers}: ${parts.join(' · ')}`
+  return cells(long) <= width ? long : fitLine(`${T.helpers}: ${kinds.length}`, width)
 }

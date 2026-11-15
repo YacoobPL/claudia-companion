@@ -1,7 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
+- The code in smaller files: reading a shell line (`hooks/shell.ts`) and drawing her (`hooks/draw.ts`) are modules of their own, pure functions out of `hooks/register.tsx`; nothing she does changed.
+- The marketplace has a description; the README says where to report a problem and what to put in the report, and which surroundings she was tried in.
+- `assets/demo.gif` drawn anew from her layers (`python claudia_sheets.py`): her moods, what she holds, and the line she says.
+- README written anew: a table of contents, her three places in one table, commands in groups, what she reads, sends and costs (with a rough measure of her CPU time by display mode), and pictures of her moods, props and looks drawn by `claudia_sheets.py` from the mod's own layers.
 - Narration asks Haiku for one step at a time: a quick run of steps asked for each of them, and the answers came after their steps were gone. A step that comes while a call is out keeps her stock line.
 - Her pane takes all its state in one go: a drawing asked the engine some forty things one after another, and a busy moment in between could push it past the engine's ten seconds (`ui.render hook skipped: ran past its 10s budget`); five are left. A pane on its way out to the band no longer counts as her showing.
 - More of her words fitted: thanks, praise and a laugh are short messages to her, not words inside a task (`build an awesome thank-you page`); a session opened beside one at work is `A second window!`, not `Back already?`; a conversation picked up again gets `Welcome back to this one. Where were we?`; a `DELETE` with its `WHERE` is not asked about one; a deploy is `Live! Now we watch the logs.` (she never watched them); her Haiku comment is told when a turn stopped at a failure.

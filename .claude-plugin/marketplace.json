@@ -1,5 +1,6 @@
 {
   "name": "claudia-companion",
+  "description": "Claudia, the open character by anabology, as a pixel-art companion for Claude Code. One plugin; fan work, not affiliated with Anthropic.",
   "owner": { "name": "YacoobPL" },
   "plugins": [
     {

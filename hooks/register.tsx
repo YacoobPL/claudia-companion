@@ -4,21 +4,7 @@ import type { Atom } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { ChatTurn, Display, GoalInfo, HelperKind, LineId, Mood, PropName, RepoInfo, Size } from '../types'
-import {
-  ACCESSORIES,
-  ART_COLUMNS,
-  BAND,
-  ART_ROWS,
-  BODIES,
-  FACES,
-  HANDS,
-  HEAD,
-  MICS,
-  MINIS,
-  PALETTE,
-  PROPS,
-  SLEEVES,
-} from './art'
+import { FACES } from './art'
 import type { BandFace, Face } from './art'
 import {
   BADGES,
@@ -65,9 +51,12 @@ import {
   LINES,
   backgroundLine,
   cells,
+  contextLine,
+  crewLine,
   dayLine,
   duration,
   fitLine,
+  gitLine,
   goalLine,
   isLineId,
   limitsLines,
@@ -78,10 +67,14 @@ import {
   stopwatch as elapsed,
   tasksLine,
   turnLine,
+  wrappedRows,
 } from './under'
 import type { Strings } from './i18n'
 import { DAY_LOOKS, LOCKS, LOOKS, isUnlocked, lookOf } from './looks'
 import type { Look, LookKey } from './looks'
+import { DB_WRITE, ECHOES_EXIT, GIT_COMMIT, GIT_FORCE_PUSH, GIT_PUSH, GIT_WIPE, PIPE_TO_SHELL, READER, REFUSED, SQL_CLIENT, TESTS_FAILED, bare, base, callKey, clip, commandLabel, isDbTool, isDbWork, isProbe, programsOf, short, splitSteps } from './shell'
+import { MINI_ROWS, artSize, bandSprite, cache, cellsFor, frameId, gridFor, minisFor, minisThatFit, pack, svgFor, tierFor } from './draw'
+import type { Frame, Tint } from './draw'
 
 const PANE = 'claudia'
 const TITLE = 'Claudia'
@@ -199,55 +192,12 @@ const say = (list: readonly string[]): string => {
 const isFace = (v: unknown): v is Face => typeof v === 'string' && v in FACES
 const isSize = (v: unknown): v is Size => v === 'auto' || v === 'full' || v === 'compact'
 
-/** Text from outside (a file's name, a tool's, a folder's) with nothing in it a terminal would act on: no escapes, no direction marks. */
-const CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g
-const plain = (text: string) => text.replace(CONTROL, '')
-
-function base(path: unknown) {
-  return typeof path === 'string' ? plain(path.split(/[\\/]/).filter(Boolean).pop() ?? path) : ''
-}
-
-const short = (text: unknown, n = 34) => {
-  const s = typeof text === 'string' ? plain(text).replace(/\s+/g, ' ').trim() : ''
-  return s.length > n ? `${s.slice(0, n - 1)}…` : s
-}
-
-const DB_WRITE = /\b(INSERT\s+INTO|UPDATE\s+\w+\s+SET|ALTER\s+TABLE|CREATE\s+(TABLE|INDEX|SCHEMA|VIEW|MATERIALIZED))\b/i
-const isDbWork = (cmd: string) => /psycopg|psql|mysql|sqlite3|migrat|prisma\s+migrate|\.sql\b/i.test(cmd)
-/** A database tool by its name: `db` counts only as a word of its own (never the one inside `feedback`). */
-const isDbTool = (tool: string) => /^mcp__.*(postgres|postgis|sql|supabase|mongo|bigquery|snowflake|(?<![a-z])(db|database)(?![a-z]))/i.test(tool)
-/** A program that runs SQL: only there does a `DROP TABLE` in the line mean one. */
-const SQL_CLIENT = /\b(psql|mysql|mariadb|sqlite3|sqlcmd|duckdb|clickhouse-client|psycopg\d?|asyncpg|pymysql|sqlalchemy|pg_restore)\b/i
-/** Programs that only read or print: SQL in their line is text, not a statement. */
-const READER = /^(grep|rg|ag|cat|bat|echo|printf|head|tail|less|more|wc|ls|dir|find|findstr|sed|awk|git|gh|diff|type|select-string|get-content|sls|gc)$/i
-
-/** `git`, past its own options (`-C <folder>`, `-c key=value`, `--no-pager`), up to the subcommand. */
-const GIT = String.raw`\bgit(?:\.exe)?(?:\s+(?:-C\s+(?:"[^"]*"|'[^']*'|[^\s"']\S*)|-c\s+\S+|--[\w-]+(?:=\S+)?))*\s+`
-const GIT_COMMIT = new RegExp(String.raw`${GIT}commit\b`)
-const GIT_PUSH = new RegExp(String.raw`${GIT}push\b`)
-const GIT_FORCE_PUSH = new RegExp(String.raw`${GIT}push\b[^|&;\n]*\s(?:--force|-f)(?=[\s"']|$)`)
-const GIT_WIPE = new RegExp(String.raw`${GIT}(?:reset\s+--hard|clean\s+-[a-z]*f|checkout\s+--\s|restore\s(?!--staged))`)
-/** A tool the person turned down at its prompt, in the engine's own words for it. */
-/** The command prints its own exit code after itself (`…; echo EXIT=$?`), so the shell always ends well. */
-const ECHOES_EXIT = /(?:^|[;&|\n])\s*(?:echo|write-host|write-output)\b\s*([^;&|\n$]*)\$(?:\?|\{?LASTEXITCODE\}?|\{?PIPESTATUS\b)/i
 /**
- * That printed code, not zero, among the last lines of the output (the engine may add a line of its own
- * after it): after the words the echo puts before it (`EXIT=3`), or alone on its line for a bare `echo $?`.
+ * A shell call that ended well and still failed: a test run that printed its failures (`| tee log`,
+ * `|| true`), or a command that prints its own exit code (`…; echo EXIT=$?`) and printed one that is
+ * not zero among the last lines of the output (the engine may add a line of its own after it): after
+ * the words the echo puts before it (`EXIT=3`), or alone on its line for a bare `echo $?`.
  */
-/** A test run's own count of failures (never "0 failed"). */
-const TESTS_FAILED = /\b[1-9]\d* (?:fail|failed|failing|failures?)\b|\(fail\)|^FAILED\b|✗/m
-/** Programs that only look: no match, no difference, no such file is their answer, not a stumble. */
-const PROBE = /^(grep|rg|ag|findstr|head|tail|wc|sort|uniq|diff|cmp|test|\[|which|where|ls|dir|select-string|sls|test-path)$/i
-function isProbe(runs: string) {
-  const programs = programsOf(runs).filter(Boolean)
-  return programs.length > 0 && programs.every(p => PROBE.test(p))
-}
-/** What a call was about, to tell "the same thing works now" from "something else worked". */
-function callKey(tool: string, input: Record<string, unknown>, runs: string, isTests: boolean) {
-  if (tool === 'Bash' || tool === 'PowerShell') return isTests ? 'tests' : `run:${programsOf(runs).filter(Boolean).pop() ?? ''}`
-  return `${tool === 'Write' ? 'Edit' : tool}:${typeof input.file_path === 'string' ? input.file_path : ''}`
-}
-
 function hidFailure(tool: string, input: Record<string, unknown>, output: string) {
   if (tool !== 'Bash' && tool !== 'PowerShell') return false
   // a test run that printed failures and still ended well (`| tee log`, `|| true`)
@@ -264,137 +214,6 @@ function hidFailure(tool: string, input: Record<string, unknown>, output: string
     const code = /^\s*(\d{1,3})\b/.exec(said ? l.slice(at + said.length) : l)
     return !!code && (said !== '' || code[0].trim() === l) && Number(code[1]) > 0
   })
-}
-
-const REFUSED = /doesn.t want to proceed with this tool use|tool use was rejected|\[Request interrupted by user/i
-const PIPE_TO_SHELL = /\b(curl|wget)\b[^|;&\n]*\|\s*(sudo\s+)?(ba|z|da|k)?sh\b|\b(iwr|irm|invoke-webrequest|invoke-restmethod)\b[^|;&\n]*\|\s*(iex|invoke-expression)\b/i
-
-/** Programs whose next word says what they do: `git commit`, `npm test`, `gh pr`. */
-const WITH_SUBCOMMAND = new Set([
-  'git', 'npm', 'pnpm', 'yarn', 'bun', 'npx', 'bunx', 'gh', 'docker', 'kubectl', 'gcloud', 'claude',
-  'cargo', 'go', 'pip', 'uv', 'poetry', 'terraform', 'make', 'deno', 'dotnet', 'brew', 'apt', 'winget',
-])
-
-/** What a shell command runs, in two or three words: `git commit`, `python claudia_art.py`, `tsc`. */
-/**
- * The steps of a shell line: split at `&&`, `||`, `;` and new lines, but never inside quotes
- * (`python -c "import x; print(x)"` is one step) and never inside a heredoc's body (the lines of a
- * script fed to `python - <<'EOF'` are not commands).
- */
-function splitSteps(command: string): string[] {
-  const text = withoutHeredocs(command)
-  const mask = quotedMask(text)
-  const steps: string[] = []
-  let cur = ''
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]!
-    if (!mask[i]) {
-      const two = text.slice(i, i + 2)
-      if ((two === '&&' || two === '||') && !mask[i + 1]) {
-        steps.push(cur)
-        cur = ''
-        i++
-        continue
-      }
-      if (c === ';' || c === '\n') {
-        steps.push(cur)
-        cur = ''
-        continue
-      }
-    }
-    cur += c
-  }
-  steps.push(cur)
-  return steps.map(t => t.trim()).filter(Boolean)
-}
-
-/** A shell line without its heredoc bodies: from the end of the heredoc's line to its closing word. */
-function withoutHeredocs(whole: string): string {
-  if (typeof whole !== 'string') return ''
-  // no command is read past its first 8000 characters, whoever asks: a long script costs no more than a short one
-  const command = whole.length > 8000 ? whole.slice(0, 8000) : whole
-  return command.replace(/<<-?\s*(['"]?)([A-Za-z_]\w*)\1([^\n]*)\n[\s\S]*?\n[ \t]*\2[ \t\r]*(?=\n|$)/g, (_m, _q, _w, after: string) => after)
-}
-
-/**
- * For each character of a shell line: is it inside quotes (the quote marks too)? A backslash escapes
- * a double quote, except at the end of a quoted Windows path (`"C:\dir\" next`), where it is the path's own.
- */
-function quotedMask(text: string): boolean[] {
-  const mask = new Array<boolean>(text.length).fill(false)
-  let quote: string | null = null
-  let from = 0
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i]!
-    if (quote) {
-      mask[i] = true
-      if (c === '\\' && quote === '"' && i + 1 < text.length) {
-        const isPathEnd = text[i + 1] === '"' && /^([A-Za-z]:\\|\\\\)/.test(text.slice(from + 1, i)) && /^(\s|$)/.test(text.slice(i + 2, i + 3))
-        if (!isPathEnd) {
-          mask[++i] = true
-          continue
-        }
-      }
-      if (c === quote) quote = null
-    } else if (c === '"' || c === "'") {
-      quote = c
-      from = i
-      mask[i] = true
-    }
-  }
-  return mask
-}
-
-/**
- * What a shell line really runs: heredoc bodies dropped and quoted text blanked, so a commit message
- * that says `jest` or `DROP TABLE` is not read as a command. A script handed to a shell
- * (`bash -c "…"`, `powershell -Command "…"`, `eval "…"`, `ssh host "…"`) stays: that text does run.
- */
-function bare(command: string): string {
-  const text = withoutHeredocs(command)
-  const mask = quotedMask(text)
-  let out = ''
-  let keep = false
-  for (let i = 0; i < text.length; i++) {
-    if (mask[i] && !mask[i - 1]) keep = /(?:^|\s)(?:-l?i?c|-command|eval|ssh\s+\S+)\s*$/i.test(text.slice(Math.max(0, i - 60), i))
-    out += mask[i] && !keep && text[i] !== '"' && text[i] !== "'" ? ' ' : text[i]
-  }
-  return out
-}
-
-/** The programs of a line, step by step and pipe by pipe: `echo x | psql` is `echo` and `psql`. */
-function programsOf(command: string): string[] {
-  return splitSteps(command)
-    .flatMap(step => bare(step).split('|'))
-    .map(part => commandLabel(part).split(' ')[0] ?? '')
-    .filter(Boolean)
-}
-
-function commandLabel(command: unknown): string {
-  if (typeof command !== 'string') return ''
-  // the first real step: past `cd x &&`, env assignments, `timeout 120`, `sudo`
-  const steps = splitSteps(command)
-  const step = steps.find(t => !/^(cd|pushd|popd|set|export|echo)(?=\s|$)/.test(t) && !/^\w+=\S*$/.test(t)) ?? steps[0] ?? ''
-  const words = step
-    .replace(/^(\w+=\S+\s+)+/, '')
-    .replace(/^(sudo|timeout\s+\d+[a-z]?|time|nice)\s+/i, '')
-    // git's own options before the subcommand: `git -C repo status` is `git status`
-    .replace(/^(git(?:\.exe)?)(?:\s+(?:-C\s+(?:"[^"]*"|'[^']*'|[^\s"']\S*)|-c\s+\S+|--[\w-]+(?:=\S+)?))+(?=\s)/i, '$1')
-    .split(/\s+/)
-    .filter(Boolean)
-  const exe = (words[0] ?? '').replace(/^["']|["']$/g, '')
-  const name = (exe.split(/[\\/]/).pop() ?? exe).replace(/\.(exe|cmd|bat|ps1)$/i, '')
-  if (!name) return ''
-  const rest = words.slice(1).filter(w => !w.startsWith('-') && !/^["'$]/.test(w))
-  if (/^python\d*(\.\d+)?$|^node$|^tsx$|^ts-node$/i.test(name)) {
-    const script = rest.find(w => /\.(py|js|mjs|cjs|ts|tsx)$/i.test(w))
-    return script ? `${name} ${script.split(/[\\/]/).pop()}` : name
-  }
-  if (WITH_SUBCOMMAND.has(name.toLowerCase()) && rest[0]) {
-    const sub = rest[0].split(/[\\/]/).pop() ?? rest[0]
-    return `${name} ${sub}`.slice(0, 32)
-  }
-  return name.slice(0, 32)
 }
 
 /** What a shell command is for, in plain words (`Searching the code`, `Checking git`); its program as a last resort. */
@@ -445,14 +264,6 @@ function okLine(cmd: string): string | null {
   if (!d?.tech || !/^(Building|Checking the types|Checking the crate|Linting)/.test(d.what)) return null
   const lines = OK_LINES[d.tech]
   return lines ? say(lines) : null
-}
-
-/** A short line that ends at a word, never in the middle of one. */
-function clip(text: unknown, n = 30): string {
-  const s = typeof text === 'string' ? plain(text).replace(/\s+/g, ' ').trim() : ''
-  if (s.length <= n) return s
-  const cut = s.slice(0, n).replace(/\s+\S*$/, '')
-  return cut.length >= n / 2 ? cut : s.slice(0, n)
 }
 
 function describe(tool: string, input: Record<string, unknown>): string {
@@ -569,336 +380,9 @@ function oopsLine(tool: string, input: Record<string, unknown>, output = ''): st
 
 // ------------------------------------------------------------------ drawing
 
-const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-
-function toBase64(bytes: Uint8Array): string {
-  let out = ''
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i] ?? 0
-    const b = bytes[i + 1] ?? 0
-    const c = bytes[i + 2] ?? 0
-    const n = (a << 16) | (b << 8) | c
-    out += B64[(n >> 18) & 63]! + B64[(n >> 12) & 63]!
-    out += i + 1 < bytes.length ? B64[(n >> 6) & 63]! : '='
-    out += i + 2 < bytes.length ? B64[n & 63]! : '='
-  }
-  return out
-}
-
-const DEFAULT = 0x01000000
-const cache = new Map<string, string>()
-
-type Tint = (char: string, rgb: number, y: number) => number
-
-const rgbOf = (c: number) => [(c >> 16) & 255, (c >> 8) & 255, c & 255] as const
-const toRgb = (r: number, g: number, b: number) =>
-  (Math.max(0, Math.min(255, Math.round(r))) << 16) | (Math.max(0, Math.min(255, Math.round(g))) << 8) | Math.max(0, Math.min(255, Math.round(b)))
-
-/** The clay accent stays clay whatever she is made of: the streak and the clip carry her. */
-const isClay = (char: string) => char === 'C' || char === 'c'
-
-/** The Ghost: glass and seawater, faintly lit at the edges. */
-const ghost: Tint = (char, c) => {
-  if (isClay(char)) return c
-  const [r, g, b] = rgbOf(c)
-  return toRgb(r * 0.45 + 0x7f * 0.55, g * 0.45 + 0xc8 * 0.55, b * 0.45 + 0xc8 * 0.55)
-}
-
-/** The Holo: the phone's cold blue-white light, with scan lines. */
-const holo: Tint = (char, c, y) => {
-  if (isClay(char)) return c
-  const [r, g, b] = rgbOf(c)
-  const lum = (0.3 * r + 0.59 * g + 0.11 * b) * (y % 4 === 0 ? 0.62 : 1)
-  return toRgb(lum * 0.72 + 20, lum * 0.88 + 30, Math.min(255, lum + 70))
-}
-
-/** THE CAKE IS NOT A LIE: her face as porcelain, warm amber glass eyes with a soft glow. */
-const PORCELAIN: Record<string, string> = { S: 'I', s: 'i', e: '1', W: '2', P: 'i' }
-
-/** Dance: the whole figure shifts a pixel left / right. */
-const DANCE_SHIFT = [0, 1, 0, -1]
-
-/** Compact: her head only, cut clean at the bottom of the bob (no stub of a neck). */
-const COMPACT = { x0: 2, x1: 30, y0: 0, y1: 26 }
-
-function overlayRows(grid: string[][], rows: readonly string[] | null | undefined) {
-  if (!rows) return
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      const c = row[x]!
-      if (c !== '.') grid[y]![x] = c
-    }
-  })
-}
-
-/**
- * How big she is drawn: `big` (every pixel doubled, 64×36 cells) in a wide, tall pane, `full` (32×18),
- * `head` (28×13); narrower panes get words only.
- */
-type Tier = 'big' | 'full' | 'head'
-
-type Frame = { key: LookKey; face: Face | null; extra: PropName | null; step: number; tier: Tier; wide: boolean }
-
-/** GLaDOS-Claudia is porcelain all over: her face and her hands, when she raises them. */
-function porcelainize(grid: string[][]) {
-  for (const row of grid) {
-    for (let x = 0; x < row.length; x++) row[x] = PORCELAIN[row[x]!] ?? row[x]!
-  }
-}
-
-/** Reading glasses never go over sunglasses: a look that wears them keeps only the notebook. */
-function heldProp(look: Look, extra: PropName | null): keyof typeof PROPS | null {
-  const hasEyewear = look.acc.some(a => a === 'shield') || look.seeThroughLenses === true
-  if (!extra || !hasEyewear) return extra
-  if (extra === 'glasses') return null
-  if (extra === 'notebook') return 'book'
-  return extra
-}
-
-/** Rimless lenses: the eye whites and the skin round the eyes take the clay tint; the iris shows through. */
-function tintLenses(grid: string[][]) {
-  for (let y = 13; y <= 15; y++) {
-    for (const x of [10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22]) {
-      const c = grid[y]?.[x]
-      if (c === 'W' || c === 'S' || c === 's') grid[y]![x] = '5'
-    }
-  }
-  grid[13]![16] = '6'
-}
-
-/** The head size ends at her chin: what she holds at her shoulder moves up beside her face. */
-function propNearFace(rows: readonly string[]): string[] {
-  const out = rows.map(() => '.'.repeat(rows[0]?.length ?? ART_COLUMNS).split(''))
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      const c = row[x]!
-      if (c === '.') continue
-      // whatever sits below her chin moves up by 10 rows, the left-hand prop one column in, the right-hand two
-      const ty = y >= 18 ? y - 10 : y
-      const tx = y >= 18 ? (x < 16 ? x + 1 : x - 2) : x
-      if (out[ty]) out[ty]![tx] = c
-    }
-  })
-  return out.map(r => r.join(''))
-}
-
-const isLight = (c: string) => {
-  const v = PALETTE[c]
-  if (v === undefined) return false
-  return (0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255)) / 255 > 0.6
-}
-
-/**
- * A dark rim where something light of hers (a white dress, a pale arm, a sparkle) meets the
- * terminal's own background: lost in a dark terminal, it draws her outline on a light one.
- */
-function outline(grid: string[][]) {
-  const h = grid.length
-  const marks: [number, number][] = []
-  for (let y = 0; y < h; y++) {
-    const row = grid[y]!
-    for (let x = 0; x < row.length; x++) {
-      if (row[x] !== '.') continue
-      const near = [grid[y]?.[x + 1], grid[y]?.[x - 1], grid[y + 1]?.[x], grid[y - 1]?.[x]]
-      if (near.some(c => c !== undefined && c !== '.' && isLight(c))) marks.push([x, y])
-    }
-  }
-  for (const [x, y] of marks) grid[y]![x] = 'K'
-}
-
-function gridFor(f: Frame): { grid: string[][]; tint?: Tint } {
-  const look: Look = LOOKS[f.key]
-  const tint = look.effect === 'ghost' ? ghost : look.effect === 'holo' ? holo : undefined
-  const grid = BODIES[look.body].map(row => row.split(''))
-  overlayRows(grid, HEAD)
-  if (look.mic) overlayRows(grid, MICS[look.mic])
-  if (f.face) overlayRows(grid, FACES[f.face])
-  const held = heldProp(look, f.extra)
-  // a hat replaces the beret
-  for (const a of look.acc) if (!((held === 'hardhat' || held === 'santa') && a === 'beret')) overlayRows(grid, ACCESSORIES[a])
-  // a raised hand (a wave, a facepalm) goes over sunglasses and earrings, in the sleeve of the look
-  const hand = f.face ? HANDS[f.face] : undefined
-  if (hand) {
-    const [fill, shade, up, upShade] = SLEEVES[look.body] ?? ['S', 's', 'S', 's']
-    overlayRows(grid, hand.map(row => row.replace(/@/g, fill).replace(/&/g, shade).replace(/%/g, up).replace(/\$/g, upShade)))
-  }
-  if (look.seeThroughLenses) tintLenses(grid)
-  if (look.isPorcelain) porcelainize(grid)
-  // her hands are busy waving or on her face: what she holds is put down meanwhile
-  if (held && !hand) overlayRows(grid, f.tier === 'head' ? propNearFace(PROPS[held]) : PROPS[held])
-  outline(grid)
-  const shift = DANCE_SHIFT[f.step % 4] ?? 0
-  let out = shift === 0 ? grid : grid.map(row => row.map((_, x) => row[x - shift] ?? '.'))
-  if (f.tier === 'head') out = out.slice(COMPACT.y0, COMPACT.y1).map(row => row.slice(COMPACT.x0, COMPACT.x1))
-  // big: every pixel twice as wide and twice as tall
-  if (f.tier === 'big') out = out.flatMap(row => {
-    const twice = row.flatMap(c => [c, c])
-    return [twice, [...twice]]
-  })
-  // wider pixels: every fourth column twice, for cells taller than two to one
-  if (f.wide) out = out.map(row => row.flatMap((c, x) => (x % 4 === 3 ? [c, c] : [c])))
-  return { grid: out, tint }
-}
-
-const frameId = (f: Frame) => `${f.key}|${f.face}|${f.extra}|${DANCE_SHIFT[f.step % 4]}|${f.tier}|${f.wide}`
-
-const TIER_SIZE: Record<Tier, { columns: number; rows: number }> = {
-  big: { columns: ART_COLUMNS * 2, rows: ART_ROWS * 2 },
-  full: { columns: ART_COLUMNS, rows: ART_ROWS },
-  head: { columns: COMPACT.x1 - COMPACT.x0, rows: (COMPACT.y1 - COMPACT.y0) / 2 },
-}
-
-/** Her size in cells; wider pixels add a column for every four. */
-const artSize = (tier: Tier, wide = false) => {
-  const t = TIER_SIZE[tier]
-  return wide ? { columns: t.columns + Math.floor(t.columns / 4), rows: t.rows } : t
-}
-
-/** The biggest drawing that fits the pane; null where even the smallest does not. */
-function tierFor(chosen: Size, columns: number, placement: 'dock' | 'inline' | 'widget', rows = 0, wide = false): Tier | null {
-  // each size only where it leaves room below it: her words always, and a few lines under them
-  // (a short window gets her head, a shorter one her words alone, never her picture with nothing to say)
-  const below: Record<Tier, number> = { big: 6, full: 5, head: 3 }
-  const fits = (t: Tier) => columns >= artSize(t, wide).columns + 2 && (rows === 0 ? t !== 'big' : rows >= TIER_SIZE[t].rows + below[t])
-  const order: Tier[] =
-    chosen === 'full'
-      ? ['big', 'full', 'head']
-      : chosen === 'compact'
-        ? ['head']
-        : placement !== 'inline'
-          ? ['big', 'full', 'head']
-          : ['head']
-  return order.find(fits) ?? null
-}
-
-/**
- * The context line (how full the context window is, read like the limits under it), fitted to the
- * pane: the word "cost" goes first, then the cost, then the word "context", then the bar shortens,
- * so the line never wraps.
- */
-function contextLine(T: Strings, used: number, usd: number | null, width: number) {
-  const pct = ` ${used}%`
-  const money = usd === null || !Number.isFinite(usd) || usd < 0 ? '' : `$${usd < 100 ? usd.toFixed(2) : Math.round(usd)}`
-  const cost = money ? ` · ${T.cost} ${money}` : ''
-  const costShort = money ? ` · ${money}` : ''
-  for (const [label, bars, tail] of [
-    [T.context, 10, pct + cost],
-    [T.context, 10, pct + costShort],
-    [T.context, 10, pct],
-    ['', 10, pct + costShort],
-    ['', 10, pct],
-    ['', 6, pct],
-    ['', 4, pct],
-    ['', 3, ''],
-  ] as const) {
-    if (cells(label) + bars + cells(tail) <= width) {
-      return { label, bars, filled: Math.round((used / 100) * bars), tail }
-    }
-  }
-  return null
-}
-
 /** Cuts a line to the pane's width at a word, never in the middle of one. */
 function fit(text: string, width: number): string {
   return fitLine(text, width)
-}
-
-/** Palette grid -> Raster cells (half blocks: two pixels per cell). */
-function pack(grid: string[][], columns: number, rows: number, tint?: Tint): string {
-  const color = (c: string | undefined, y: number) => {
-    if (!c || c === '.') return null
-    const rgb = PALETTE[c]
-    if (rgb === undefined) return DEFAULT
-    return tint ? tint(c, rgb, y) : rgb
-  }
-  const words = new Uint32Array(columns * rows * 3)
-  let i = 0
-  for (let r = 0; r < rows; r++) {
-    for (let x = 0; x < columns; x++) {
-      const top = color(grid[2 * r]?.[x], 2 * r)
-      const bot = color(grid[2 * r + 1]?.[x], 2 * r + 1)
-      if (top === null && bot === null) words.set([0x20, DEFAULT, DEFAULT], i)
-      else if (bot === null) words.set([0x2580, top!, DEFAULT], i)
-      else if (top === null) words.set([0x2584, bot, DEFAULT], i)
-      else words.set([0x2580, top, bot], i)
-      i += 3
-    }
-  }
-  return toBase64(new Uint8Array(words.buffer))
-}
-
-function cellsFor(f: Frame): string {
-  const id = `cells|${frameId(f)}`
-  const hit = cache.get(id)
-  if (hit) return hit
-  const { grid, tint } = gridFor(f)
-  const { columns, rows } = artSize(f.tier, f.wide)
-  const out = pack(grid, columns, rows, tint)
-  cache.set(id, out)
-  return out
-}
-
-const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`
-
-/** The same pixels as SVG rectangles, for the desktop app, the editor and the phone. */
-function svgFor(f: Frame): string {
-  const id = `svg|${frameId(f)}`
-  const hit = cache.get(id)
-  if (hit) return hit
-  const { grid, tint } = gridFor(f)
-  const w = grid[0]?.length ?? ART_COLUMNS
-  const h = grid.length
-  const rects: string[] = []
-  grid.forEach((row, y) => {
-    let x = 0
-    while (x < row.length) {
-      const c = row[x]!
-      if (c === '.' || PALETTE[c] === undefined) {
-        x++
-        continue
-      }
-      const rgb = tint ? tint(c, PALETTE[c]!, y) : PALETTE[c]!
-      let end = x + 1
-      while (end < row.length && row[end] !== '.' && PALETTE[row[end]!] !== undefined) {
-        const next = tint ? tint(row[end]!, PALETTE[row[end]!]!, y) : PALETTE[row[end]!]!
-        if (next !== rgb) break
-        end++
-      }
-      rects.push(`<rect x="${x}" y="${y}" width="${end - x}" height="1" fill="${hex(rgb)}"/>`)
-      x = end
-    }
-  })
-  const out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * 10}" height="${h * 10}" shape-rendering="crispEdges">${rects.join('')}</svg>`
-  cache.set(id, out)
-  return out
-}
-
-/** Room between two little Claudias, and her height in rows with one pixel to bounce. */
-const MINI_GAP = 1
-const MINI_ROWS = Math.ceil((MINIS.general.length + 1) / 2)
-
-function miniWidth(kind: HelperKind): number {
-  return MINIS[kind][0]?.length ?? 8
-}
-
-/** A row of little Claudias, one per working subagent, each holding what her kind works with. */
-function minisFor(kinds: readonly HelperKind[], bounce: number): { cells: string; columns: number } {
-  const columns = kinds.reduce((sum, k) => sum + miniWidth(k), 0) + MINI_GAP * Math.max(0, kinds.length - 1)
-  const grid: string[][] = Array.from({ length: MINI_ROWS * 2 }, () => Array<string>(columns).fill('.'))
-  let left = 0
-  kinds.forEach((kind, k) => {
-    const up = (k + bounce) % 2
-    MINIS[kind].forEach((row: string, y: number) => {
-      for (let x = 0; x < row.length; x++) {
-        const c = row[x]!
-        const ty = y + 1 - up
-        if (c !== '.' && grid[ty]) grid[ty]![left + x] = c
-      }
-    })
-    left += miniWidth(kind) + MINI_GAP
-  })
-  outline(grid)
-  return { cells: pack(grid, columns, MINI_ROWS), columns }
 }
 
 /** Her face in the band, from her mood (and her mouth, while she talks). */
@@ -909,72 +393,6 @@ async function bandFace($: EngineInterface): Promise<BandFace> {
   if (m === 'yawn' || m === 'sleep') return 'sleep'
   if (m === 'think' || m === 'happy' || m === 'oops' || m === 'nervous' || m === 'wave') return m
   return 'rest'
-}
-
-/** The band's Claudia: 14 x 14 pixels in 7 rows, her dress coloured, outlined for a light terminal. */
-/**
- * The band's Claudia: the helpers' chibi, 8 x 10 in 5 rows, with the face of her mood and the colour
- * of her look; porcelain for GLaDOS, ghost and holo tinted, outlined for a light terminal.
- */
-function bandSprite(face: BandFace, look: Look): { cells: string; columns: number; rows: number } {
-  const art = BAND[face]
-  const dress = BODIES[look.body][33]?.[8]
-  const grid = art.map(row => row.split('').map(c => (c === 'T' && dress && dress !== '.' ? dress : c)))
-  if (look.isPorcelain) porcelainize(grid)
-  outline(grid)
-  const columns = art[0]!.length
-  const rows = Math.ceil(art.length / 2)
-  return { cells: pack(grid, columns, rows, look.effect === 'ghost' ? ghost : look.effect === 'holo' ? holo : undefined), columns, rows }
-}
-
-/** How many little Claudias fit in `width`; the line under them counts them all. */
-function minisThatFit(kinds: readonly HelperKind[], width: number): number {
-  let used = 0
-  for (let k = 0; k < kinds.length; k++) {
-    used += (k ? MINI_GAP : 0) + miniWidth(kinds[k]!)
-    if (used > width) return k
-  }
-  return kinds.length
-}
-
-/** How many rows a text takes in a pane of this width, wrapped at its words (a word longer than a row is broken). */
-function wrappedRows(text: string, width: number): number {
-  let rows = 1
-  let used = 0
-  for (const word of text.split(/\s+/).filter(Boolean)) {
-    const w = cells(word)
-    if (used && used + 1 + w <= width) used += 1 + w
-    else if (w <= width) {
-      if (used) rows += 1
-      used = w
-    } else {
-      // a long word fills what is left of its rows
-      const first = used ? width - used - 1 : width
-      const rest = Math.max(0, w - Math.max(0, first))
-      rows += Math.ceil(rest / width) + (used && first <= 0 ? 1 : 0)
-      used = rest % width || width
-    }
-  }
-  return rows
-}
-
-/** A repository's git line: the name gives way first, so the counts stay readable. */
-function gitLine(T: Strings, r: RepoInfo, width: number): string {
-  const full = T.gitShort(r.name, r.dirty, r.ahead)
-  if (cells(full) <= width) return full
-  const tail = T.gitShort('', r.dirty, r.ahead)
-  const room = width - cells(tail)
-  if (room < 4) return fit(full, width)
-  return `${r.name.slice(0, room - 1)}…${tail}`
-}
-
-/** `helpers: Explore ×2 · Plan`, or just the count when the kinds do not fit. */
-function crewLine(T: Strings, kinds: readonly HelperKind[], width: number): string {
-  const counts = new Map<HelperKind, number>()
-  for (const k of kinds) counts.set(k, (counts.get(k) ?? 0) + 1)
-  const parts = [...counts].map(([k, n]) => (n > 1 ? `${T.helperKinds[k]} ×${n}` : T.helperKinds[k]))
-  const long = `${T.helpers}: ${parts.join(' · ')}`
-  return cells(long) <= width ? long : fit(`${T.helpers}: ${kinds.length}`, width)
 }
 
 /** The agent type a subagent was spawned as, as the kind of little Claudia she gets. */
