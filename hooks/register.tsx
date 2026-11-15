@@ -2060,6 +2060,18 @@ async function setDisplay($: EngineInterface, next: Display) {
   }
 }
 
+/**
+ * Back from the settings or the wardrobe. They open the pane even when she lives in the band or the status
+ * line (their buttons need it); leaving them closes it again, or she shows twice (the pane and the band).
+ */
+async function leaveView($: EngineInterface) {
+  await update($, view, () => 'main')
+  if ((await read($, display)) !== 'pane' && visible) {
+    await $.ui.close({ id: PANE }).catch(() => undefined)
+    visible = false
+  }
+}
+
 async function cycleDisplay($: EngineInterface) {
   const order: Display[] = ['pane', 'band', 'status']
   await setDisplay($, order[(order.indexOf(await read($, display)) + 1) % order.length]!)
@@ -2119,6 +2131,8 @@ async function demo($: EngineInterface) {
       await update($, crew, () => crewBefore)
       await update($, prop, () => null)
       isDemo = false
+      // a show from the band or the status line: the pane it opened goes with it
+      await leaveView($)
       await set($, 'happy', M.demoDone)
       calmDown($, 8000)
     })().catch(() => {
@@ -2974,7 +2988,7 @@ export const register: Register = on => {
       if (vp.columns > dockFailedAt || (await $.clock.now()) - dockTriedTime > 10_000) wantPaneAt = vp.columns
     }
     // her settings or wardrobe are up in the pane (opened from the band): one Claudia at a time
-    if (!active || (await read($, display)) !== 'band' || e.props.hasSurvey || (isAutoBand && visible && (await read($, view)) !== 'main')) return next(e)
+    if (!active || (await read($, display)) !== 'band' || e.props.hasSurvey || (visible && (await read($, view)) !== 'main')) return next(e)
     const text = await read($, line)
     const width = Math.max(10, e.props.bodyColumns - 12)
     const turn = await read($, turnInfo)
@@ -3064,7 +3078,7 @@ export const register: Register = on => {
         // her first hello asked to pick: that is done with
         if ((await read($, line)) === S.welcome) await update($, line, () => say(S.idle))
       }
-      await update($, view, () => 'main')
+      await leaveView($)
     }
 
     if (verb === 'settings' || verb === 'config') {
@@ -3658,6 +3672,94 @@ ${M.recapSession(duration(openNow(ses, now)), duration(ses.workMs))}` : ''
           ? { ...ses, workMs: ses.workMs + Math.max(0, Math.min(nowMs - ses.busySince, 6 * 3600_000)) }
           : ses
 
+    // the settings are buttons on every surface: the desktop app got only her picture and the hint
+    if (isSettings) {
+      const { Box, Text, Button } = $.ui.resolve(e)
+      const rows: [string, string, () => Promise<void>, string][] = []
+      const MT = M
+      for (const t of TOGGLES) {
+        // wider pixels are for terminal cells: the SVG has none
+        if (t === 'isWide' && e.surface !== 'terminal') continue
+        const label =
+          t === 'isNarrating'
+            ? MT.optNarration
+            : t === 'isMusing'
+            ? MT.optMusing
+            : t === 'isCalm'
+            ? MT.optCalm
+            : t === 'isReading'
+            ? MT.optReading
+            : t === 'isWide'
+            ? MT.optWide
+            : t === 'isBreaks'
+              ? MT.optBreaks
+              : t === 'isCommenting' ? T.optComments : t === 'isReminding' ? T.optReminders : t === 'isSound' ? T.optSound : t === 'isGitGuard' ? T.optGit : T.optNotify
+        const isOn = await readToggle($, t)
+        rows.push([t, label, () => writeToggle($, t, !isOn), isOn ? T.on : T.off])
+      }
+      const sizeLabel = chosenSize === 'auto' ? T.sizeAuto : chosenSize === 'full' ? T.sizeFull : T.sizeCompact
+      const pickNow = lookOf(await seen($, outfitPick))
+      return (
+        <Box flexDirection="column" paddingX={1}>
+          <Text color="#D97757" weight="bold">
+            ✷ {T.settingsTitle}
+          </Text>
+          <Text dimColor>{e.surface !== 'terminal' ? T.settingsClickHint : e.props.isFocused ? T.settingsHint : T.settingsNoKeys}</Text>
+          <Box marginTop={1}>
+            <Button
+              key="done-top"
+              autoFocus
+              label={T.done}
+              onPress={async () => {
+                await leaveView($)
+                await $.store.set('onboarded', true)
+                await update($, line, () => say(T.idle))
+              }}
+            />
+          </Box>
+          {rows.map(([k, label, press, state]) => (
+            <Box key={k} flexDirection="column" marginTop={1}>
+              <Text>{label}</Text>
+              <Button key={k} label={state} onPress={press} />
+            </Box>
+          ))}
+          <Box marginTop={1} flexDirection="column">
+            <Text>{MT.optLines}</Text>
+            {LINES.map(id => (
+              <Button
+                key={`line-${id}`}
+                label={`${hidden.has(id) ? '○' : '●'} ${MT.lineNames[id]}`}
+                onPress={() => setLineShown($, id, hidden.has(id))}
+              />
+            ))}
+          </Box>
+          <Box marginTop={1} flexDirection="column">
+            <Text>{MT.optDisplay}</Text>
+            <Button key="display" label={MT.displayNames[await seen($, display)]} onPress={() => cycleDisplay($)} />
+          </Box>
+          <Box marginTop={1} flexDirection="column">
+            <Text>{T.optSize}</Text>
+            <Button key="size" label={sizeLabel} onPress={() => cycleSize($)} />
+          </Box>
+          <Box marginTop={1} flexDirection="column">
+            <Text>{T.optLook}</Text>
+            <Button key="look" label={pickNow ? T.looks[pickNow] : 'auto'} onPress={() => cycleLook($)} />
+          </Box>
+          <Box marginTop={1}>
+            <Button
+              key="done"
+              label={T.done}
+              onPress={async () => {
+                await leaveView($)
+                await $.store.set('onboarded', true)
+                await update($, line, () => say(T.idle))
+              }}
+            />
+          </Box>
+        </Box>
+      )
+    }
+
     if (e.surface === 'terminal') {
       const { Box, Text, Raster, Button } = $.ui.resolve(e)
 
@@ -3695,91 +3797,7 @@ ${M.recapSession(duration(openNow(ses, now)), duration(ses.workMs))}` : ''
               <Button key="w-prev" label="◀" onPress={() => update($, wardrobeAt, n => n - 1)} />
               <Button key="w-next" label="▶" autoFocus onPress={() => update($, wardrobeAt, n => n + 1)} />
               {isOpen && <Button key="w-wear" label={M.wear} onPress={() => wear($, k)} />}
-              <Button key="w-done" label={M.done} onPress={() => update($, view, () => 'main')} />
-            </Box>
-          </Box>
-        )
-      }
-
-      if (isSettings) {
-        const rows: [string, string, () => Promise<void>, string][] = []
-        const MT = M
-        for (const t of TOGGLES) {
-          const label =
-            t === 'isNarrating'
-              ? MT.optNarration
-              : t === 'isMusing'
-              ? MT.optMusing
-              : t === 'isCalm'
-              ? MT.optCalm
-              : t === 'isReading'
-              ? MT.optReading
-              : t === 'isWide'
-              ? MT.optWide
-              : t === 'isBreaks'
-                ? MT.optBreaks
-                : t === 'isCommenting' ? T.optComments : t === 'isReminding' ? T.optReminders : t === 'isSound' ? T.optSound : t === 'isGitGuard' ? T.optGit : T.optNotify
-          const isOn = await readToggle($, t)
-          rows.push([t, label, () => writeToggle($, t, !isOn), isOn ? T.on : T.off])
-        }
-        const sizeLabel = chosenSize === 'auto' ? T.sizeAuto : chosenSize === 'full' ? T.sizeFull : T.sizeCompact
-        const pickNow = lookOf(await seen($, outfitPick))
-        return (
-          <Box flexDirection="column" paddingX={1}>
-            <Text color="#D97757" weight="bold">
-              ✷ {T.settingsTitle}
-            </Text>
-            <Text dimColor>{e.props.isFocused ? T.settingsHint : T.settingsNoKeys}</Text>
-            <Box marginTop={1}>
-              <Button
-                key="done-top"
-                autoFocus
-                label={T.done}
-                onPress={async () => {
-                  await update($, view, () => 'main')
-                  await $.store.set('onboarded', true)
-                  await update($, line, () => say(T.idle))
-                }}
-              />
-            </Box>
-            {rows.map(([k, label, press, state]) => (
-              <Box key={k} flexDirection="column" marginTop={1}>
-                <Text>{label}</Text>
-                <Button key={k} label={state} onPress={press} />
-              </Box>
-            ))}
-            <Box marginTop={1} flexDirection="column">
-              <Text>{MT.optLines}</Text>
-              {LINES.map(id => (
-                <Button
-                  key={`line-${id}`}
-                  label={`${hidden.has(id) ? '○' : '●'} ${MT.lineNames[id]}`}
-                  onPress={() => setLineShown($, id, hidden.has(id))}
-                />
-              ))}
-            </Box>
-            <Box marginTop={1} flexDirection="column">
-              <Text>{MT.optDisplay}</Text>
-              <Button key="display" label={MT.displayNames[await seen($, display)]} onPress={() => cycleDisplay($)} />
-            </Box>
-            <Box marginTop={1} flexDirection="column">
-              <Text>{T.optSize}</Text>
-              <Button key="size" label={sizeLabel} onPress={() => cycleSize($)} />
-            </Box>
-            <Box marginTop={1} flexDirection="column">
-              <Text>{T.optLook}</Text>
-              <Button key="look" label={pickNow ? T.looks[pickNow] : 'auto'} onPress={() => cycleLook($)} />
-            </Box>
-            <Box marginTop={1}>
-              <Button
-                key="done"
-                label={T.done}
-                onPress={async () => {
-                  await update($, view, () => 'main')
-                  await $.store.set('onboarded', true)
-                  await update($, line, () => say(T.idle))
-                }}
-              />
+              <Button key="w-done" label={M.done} onPress={() => leaveView($)} />
             </Box>
           </Box>
         )
@@ -3929,37 +3947,52 @@ ${M.recapSession(duration(openNow(ses, now)), duration(ses.workMs))}` : ''
             <Button key="w-prev" label="◀" onPress={() => update($, wardrobeAt, n => n - 1)} />
             <Button key="w-next" label="▶" onPress={() => update($, wardrobeAt, n => n + 1)} />
             {isOpen && <Button key="w-wear" label={M.wear} onPress={() => wear($, k)} />}
-            <Button key="w-done" label={M.done} onPress={() => update($, view, () => 'main')} />
+            <Button key="w-done" label={M.done} onPress={() => leaveView($)} />
           </Box>
         </Box>
       )
     }
 
+    // the same lines as under her in the terminal, in the same order, each hidden by the same setting
+    const GW = 60
+    const gfull = left === null ? null : 100 - left
+    const genergy = gfull === null || hidden.has('context') ? null : contextLine(T, gfull, usd, GW)
+    const gbar = (pct: number) => (pct < 50 ? '#5FA83A' : pct < 80 ? '#E0A100' : '#D0353F')
+    const barRow = (k: string, b: { label: string; filled: number; bars: number; tail: string }, pct: number) => (
+      <Box key={k} flexDirection="row">
+        {b.label ? <Text dimColor>{b.label}</Text> : null}
+        <Text color={gbar(pct)}>{'▰'.repeat(b.filled)}</Text>
+        <Text dimColor>
+          {'▱'.repeat(b.bars - b.filled)}
+          {b.tail}
+        </Text>
+      </Box>
+    )
+    const gtext = (k: string, t: string | null) =>
+      t ? (
+        <Text key={k} dimColor>
+          {t}
+        </Text>
+      ) : null
+    const glines = [
+      hidden.has('tasks') ? null : gtext('tasks', tasksLine(todo, GW)),
+      hidden.has('goal') ? null : gtext('goal', goalLine(M, goalNow, dayOf(nowMs), GW)),
+      hidden.has('turn') ? null : gtext('turn', turnLine(M, turn, nowMs, GW)),
+      hidden.has('session') ? null : gtext('session', sessionLine(M, liveSession, nowMs, GW)),
+      genergy && gfull !== null ? barRow('context', genergy, gfull) : null,
+      ...(hidden.has('limits') ? [] : limitsLines(windows, nowMs, GW).map((l, i) => barRow(`limits-${i}`, l, l.pct))),
+      hidden.has('background') ? null : gtext('background', backgroundLine(M, bgList, GW)),
+      hidden.has('sessions') ? null : gtext('sessions', sessionsLine(M, othersNow, GW)),
+      hidden.has('mode') ? null : gtext('mode', quietNow > nowMs ? fitLine(M.focusLine(hhmm(quietNow)), GW) : modeLine(M, mode, GW)),
+      ...(hidden.has('git') ? [] : repos.map(r => gtext(`git-${r.name}`, gitLine(T, r, GW)))),
+      hidden.has('day') ? null : gtext('day', dayLine(M, day, GW)),
+    ].filter(x => x !== null)
     return (
       <Box flexDirection="column">
         <Svg source={svgFor(svgFrame)} alt={`Claudia: ${text}`} />
         <Text>✷ {text}</Text>
-        {kinds.length > 0 && <Text dimColor>{crewLine(T, kinds, 60)}</Text>}
-        {[
-          hidden.has('tasks') ? null : tasksLine(todo, 60),
-          hidden.has('turn') ? null : turnLine(M, turn, nowMs, 60),
-          hidden.has('session') ? null : sessionLine(M, liveSession, nowMs, 60),
-          hidden.has('background') ? null : backgroundLine(M, bgList, 60),
-          hidden.has('mode') ? null : modeLine(M, mode, 60),
-        ]
-          .filter((t): t is string => !!t)
-          .map(t => (
-            <Text key={t} dimColor>
-              {t}
-            </Text>
-          ))}
-        {left !== null && (
-          <Text dimColor>
-            {T.context}
-            {100 - left}%{usd !== null && Number.isFinite(usd) ? ` · ${T.cost} $${usd.toFixed(2)}` : ''}
-          </Text>
-        )}
-        {isSettings && <Text dimColor>{T.settingsHint}</Text>}
+        {kinds.length > 0 && <Text dimColor>{crewLine(T, kinds, GW)}</Text>}
+        {glines.slice(0, 12)}
       </Box>
     )
   })

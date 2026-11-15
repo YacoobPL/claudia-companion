@@ -84,6 +84,38 @@ test('the band or the status line alone: her pane closes', SLOW, async ($, on) =
   expect(seen.closes).toBe(1)
 })
 
+const bandOn = (surface: 'terminal' | 'desktop') =>
+  ({
+    plugin: 'claudia-companion',
+    component: 'AbovePrompt',
+    surface,
+    viewport: { columns: 160, rows: 40, isFullscreen: true },
+    props: { hasSurvey: false, isWorking: false, maxRows: 8, bodyColumns: 156 },
+  }) as const
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`${surface}: the wardrobe from the band shows her once, and closes its pane when left`, SLOW, async ($, on) => {
+    const seen = { closes: 0, systems: [] as string[] }
+    engine(on, seen)
+    await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+    await run($, 'display band')
+    const closed = seen.closes
+    await run($, 'wardrobe')
+    const p = await $.ui.mount({ ...pane(), surface } as never)
+    // the pane holds the wardrobe; the band above the prompt gives way while it is up
+    const up = await $.ui.mount(bandOn(surface) as never)
+    expect((await up.findAll({ type: 'Text' })).map((t: { text: string }) => t.text).join(' ')).not.toContain('✷')
+    await up.unmount()
+    await run($, 'today')
+    expect(seen.closes).toBe(closed + 1)
+    await p.unmount()
+    // the band is hers again
+    const back = await $.ui.mount(bandOn(surface) as never)
+    expect((await back.findAll({ type: 'Text' })).map((t: { text: string }) => t.text).join(' ')).toContain('✷')
+    await back.unmount()
+  })
+}
+
 test('the overlay’s project only where its repositories are', SLOW, async ($, on) => {
   const seen = { closes: 0, systems: [] as string[] }
   engine(on, seen, { '/elsewhere': ['src'], '/acme': ['acme-web', 'acme-api'] })

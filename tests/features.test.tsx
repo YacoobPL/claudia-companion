@@ -183,6 +183,38 @@ test('the desktop app: the wardrobe as SVG with its buttons, and doctor asks aft
   await ui.unmount()
 })
 
+test('the desktop app: the settings as buttons to click, without the terminal-only wide pixels', SLOW, async ($, on) => {
+  engine(on)
+  on('session.attach', (_: unknown, e: { clientId: string }) => ({ clientId: e.clientId }))
+  await $.session.start({ cwd: '/w', surface: null, isInteractive: false })
+  await $.session.attach({ surface: 'desktop', clientId: 'desktop:default' } as never)
+  expect(await run($, 'settings')).toContain('settings')
+  const ui = await $.ui.mount({ ...pane(), surface: 'desktop' })
+  expect(await ui.find({ type: 'Button', key: 'done-top' })).toBeTruthy()
+  expect(await ui.find({ type: 'Button', key: 'isSound' })).toBeTruthy()
+  expect(await ui.find({ type: 'Button', key: 'display' })).toBeTruthy()
+  expect(await ui.find({ type: 'Button', key: 'isWide' })).toBeFalsy()
+  expect(await ui.find({ type: 'Text', text: /Click to toggle/ })).toBeTruthy()
+  await ui.unmount()
+})
+
+test('the desktop app: the lines under her are the terminal’s, hidden by the same settings', SLOW, async ($, on) => {
+  engine(on)
+  on('session.attach', (_: unknown, e: { clientId: string }) => ({ clientId: e.clientId }))
+  await $.session.start({ cwd: '/w', surface: null, isInteractive: false })
+  await $.session.attach({ surface: 'desktop', clientId: 'desktop:default' } as never)
+  await run($, 'goal ship the release')
+  const words = async () => {
+    const ui = await $.ui.mount({ ...pane(), surface: 'desktop' })
+    const all = (await ui.findAll({ type: 'Text' })).map((t: { text: string }) => t.text).join(' ')
+    await ui.unmount()
+    return all
+  }
+  expect(await words()).toContain('ship the release')
+  await run($, 'hide goal')
+  expect(await words()).not.toContain('ship the release')
+})
+
 test('the share card: an SVG saved under ~/.claude/claudia', SLOW, async ($, on) => {
   const box: Box = { said: [], written: {} }
   engine(on, { onboarded: true }, box)

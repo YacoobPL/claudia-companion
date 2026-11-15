@@ -1,6 +1,6 @@
 {
   "name": "claudia-companion",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Claudia (open character by anabology, claudia.gallery) in a pane beside the chat: thinks while tools run, waves when Claude needs your OK, facepalms on errors, sings when work is done. Fan work, not affiliated with Anthropic.",
   "license": "MIT",
   "keywords": [

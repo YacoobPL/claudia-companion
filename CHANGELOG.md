@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3
+
+- **The settings in the desktop app** (and the editor, the phone): `/claudia settings` showed her picture and a hint, not the settings. They are buttons to click on every surface now, with a hint for clicking (`Click to toggle. Saved for every session.`), not for Tab and Enter; wider pixels, which only terminal cells have, are left out there.
+- **Shown once, not twice.** With her in the band (or the status line), `/claudia settings`, `/claudia wardrobe` and `/claudia demo` open the pane for their buttons; Done (or any other command of hers) left that pane up beside the band above the prompt. Leaving them now closes it, and the band gives way while it is up, whether the band was your choice or a narrow window's. The same in the terminal and the desktop app.
+- **The lines under her in the desktop app** are the terminal's, in its order: the goal, the limits, the other sessions, git, the day and the focus line were missing, and hiding `context` did nothing there. The bars keep their green, amber and red.
+
 ## 0.4.2
 
 - Tried in the Claude desktop app on Windows; the README says so.

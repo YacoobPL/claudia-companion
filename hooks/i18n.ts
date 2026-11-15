@@ -137,6 +137,7 @@ export type Strings = {
   settingsTitle: string
   settingsHint: string
   settingsNoKeys: string
+  settingsClickHint: string
   on: string
   off: string
   optComments: string
@@ -454,6 +455,7 @@ export const EN: Strings = {
   settingsTitle: 'Claudia · settings',
   settingsHint: 'Tab to move, Enter to toggle. Saved for every session.',
   settingsNoKeys: 'Type /claudia (or click here) to use the keys: Tab to move, Enter to toggle.',
+  settingsClickHint: 'Click to toggle. Saved for every session.',
   on: 'on',
   off: 'off',
   optComments: 'Comments (one Haiku call per turn, your account)',
