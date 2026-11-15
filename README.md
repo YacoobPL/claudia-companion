@@ -36,6 +36,13 @@ In the desktop app, where `/plugin` does not run: click **+** next to the prompt
 
 Then type `/claudia`. On the first run she opens her settings, so you choose what she may do before she does it.
 
+To update her later, from a shell (then start a new session):
+
+```
+claude plugin marketplace update claudia-companion
+claude plugin update claudia-companion@claudia-companion
+```
+
 ## What she does
 
 ![Her moods: thinking, talking, done, needs your OK, an error, a risky command, thanked, humming, a long wait, asleep](assets/moods.png)

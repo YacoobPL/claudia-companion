@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.4.0
+## 0.4.1
 
 - Her open mouth drawn anew (talking, singing, yawning): her teeth, the dark of her mouth and her lower lip, in place of a ring of lip round a dark middle. A new screenshot of her pane; the social image names the fan work's author.
+- README: how to update her. A new version reaches an installed copy only under a new version number, so every change now ships with one.
+
+## 0.4.0
+
 - The code in smaller files: reading a shell line (`hooks/shell.ts`) and drawing her (`hooks/draw.ts`) are modules of their own, pure functions out of `hooks/register.tsx`; nothing she does changed.
 - The marketplace has a description; the README says where to report a problem and what to put in the report, and which surroundings she was tried in.
 - `assets/demo.gif` drawn anew from her layers (`python claudia_sheets.py`): her moods, what she holds, and the line she says.
