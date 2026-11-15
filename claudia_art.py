@@ -149,7 +149,8 @@ def face_blink(g):
 
 
 def face_talk(g):
-    stamp(g, 14, 20, [" MM ", "MmmM", " MM "])
+    # open a little: the dark of her mouth over her lower lip (never a ring of lip round a hole)
+    stamp(g, 14, 21, ["mmmm", " MM "])
 
 
 def face_think(g):
@@ -169,7 +170,8 @@ def face_happy(g):
     stamp(g, 18, 14, [" EE ", "E  E"])
     stamp(g, 10, 17, ["PP"])
     stamp(g, 21, 17, ["PP"])
-    stamp(g, 14, 20, [" MM ", "MmmM", "MmmM", " MM "])
+    # a wide open smile: her upper teeth, the dark of her mouth, her tongue
+    stamp(g, 13, 20, ["mWWWWm", " mmmm ", "  MM  "])
     for x, y in [(2, 9), (1, 10), (3, 10), (2, 11), (28, 13), (29, 12), (29, 14), (30, 13)]:
         put(g, x, y, "O")
 
@@ -216,7 +218,8 @@ def face_yawn(g):
     stamp(g, 11, 14, ["EEEE"])
     stamp(g, 18, 14, ["EEEE"])
     put(g, 22, 15, "B")
-    stamp(g, 14, 19, [" MM ", "MmmM", "MmmM", "MmmM", " MM "])
+    # a tall yawn: teeth at the top, her tongue at the bottom
+    stamp(g, 14, 19, [" mm ", "mWWm", "mmmm", " MM "])
 
 
 def face_wink(g):

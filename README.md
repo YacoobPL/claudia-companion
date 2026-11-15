@@ -76,7 +76,7 @@ Three places, chosen with `/claudia display pane|band|status` or in the settings
 
 The pane, with the lines under her:
 
-<img src="assets/pane.png" alt="Claudia in her pane: her figure, her word, and the lines for the last turn, the session, context, limits, background tasks, other sessions, git and the day" width="340">
+<img src="assets/pane.png" alt="Claudia in her pane: her figure, her word, and the lines for the last turn, the session, context and the 5-hour limit" width="340">
 
 The band above the prompt:
 

@@ -85,7 +85,7 @@ def social(path):
         big = small = ImageFont.load_default()
     draw.text((640, 110), "Claudia for Claude Code", fill=(217, 119, 87), font=big, anchor="mm")
     draw.text((640, 190), "a pixel-art companion beside your chat", fill=(237, 236, 231), font=small, anchor="mm")
-    draw.text((640, 240), "open character by anabology · fan work", fill=(170, 176, 190), font=small, anchor="mm")
+    draw.text((640, 240), "open character by anabology · fan work by YacoobPL", fill=(170, 176, 190), font=small, anchor="mm")
     img.save(path)
     print(path, img.size)
 
