@@ -73,7 +73,7 @@ Her warnings about risky commands are pattern matching on the command's text: a 
 
 ## Where she shows
 
-Three places, chosen with `/claudia display pane|band|status` or in the settings:
+Three places, chosen with `/claudia pane`, `/claudia band` or `/claudia status` (or the long form, `/claudia display pane|band|status`) or in the settings:
 
 | Mode | What you see |
 |---|---|
@@ -115,7 +115,7 @@ The band above the prompt:
 | `/claudia card` | today with her as an SVG card in `~/.claude/claudia/`, to share |
 | `/claudia git` | uncommitted files and unpushed commits in your repos |
 | **How she behaves** | |
-| `/claudia display pane\|band\|status` | where she shows |
+| `/claudia pane` · `band` · `status` | where she shows (the long form: `display pane\|band\|status`) |
 | `/claudia quiet [minutes]` · `quiet off` | focus mode (an hour by default): only Claude's questions, permissions and errors |
 | `/claudia hide <line>` · `show <line>` | the lines under her |
 | `/claudia sound`, `notify`, `breaks`, `reminders`, `calm`, `wide` | quick toggles: `on`, `off`, or nothing to flip |

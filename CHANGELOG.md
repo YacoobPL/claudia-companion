@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.4
+
+- **`/claudia help` by what you want to do**: where she shows first (with a word on each place), then her look, how to make her quieter, talking, Haiku and when something is off. Each command says what it does; the names of the lines `hide` and `show` take are listed, and `goal done` is there.
+- **`/claudia pane`, `/claudia band`, `/claudia status`**: the short forms of `/claudia display …`, the words people tried first (`I don’t know “pane”`).
+
 ## 0.4.3
 
 - **The settings in the desktop app** (and the editor, the phone): `/claudia settings` showed her picture and a hint, not the settings. They are buttons to click on every surface now, with a hint for clicking (`Click to toggle. Saved for every session.`), not for Tab and Enter; wider pixels, which only terminal cells have, are left out there.

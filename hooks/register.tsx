@@ -3192,10 +3192,12 @@ ${M.recapSession(duration(openNow(ses, now)), duration(ses.workMs))}` : ''
       return { text: M.focusOn(hhmm(until)) }
     }
 
-    if (verb === 'display') {
-      if (arg !== 'pane' && arg !== 'band' && arg !== 'status') return { text: M.displayUsage }
-      await setDisplay($, arg)
-      return { text: M.displaySet(M.displayNames[arg]) }
+    // `/claudia pane` is `/claudia display pane`: the word people reach for first
+    if (verb === 'display' || verb === 'pane' || verb === 'band' || verb === 'status') {
+      const where = verb === 'display' ? arg : verb
+      if (where !== 'pane' && where !== 'band' && where !== 'status') return { text: M.displayUsage }
+      await setDisplay($, where)
+      return { text: M.displaySet(M.displayNames[where]) }
     }
 
     if (verb === 'demo') {

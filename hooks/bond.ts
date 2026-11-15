@@ -572,7 +572,7 @@ export const MORE_EN: More = {
   displayNames: { pane: 'Pane beside the chat', band: 'Band above the prompt', status: 'Status line only' },
   optDisplay: 'Where she shows',
   displaySet: n => `Claudia now shows as: ${n}.`,
-  displayUsage: 'Usage: /claudia display pane | band | status',
+  displayUsage: 'Usage: /claudia pane | band | status (or /claudia display pane | band | status)',
   demoStart: 'Demo time! Watch me. ♪',
   demoDone: 'That’s me! /claudia settings makes me yours. ♪',
   goalSet: g => `Today’s goal: ${g}. Let’s do it! 🎯`,

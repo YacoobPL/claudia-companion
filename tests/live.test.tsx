@@ -84,6 +84,20 @@ test('the band or the status line alone: her pane closes', SLOW, async ($, on) =
   expect(seen.closes).toBe(1)
 })
 
+test('/claudia pane, band and status are display pane, band and status; help names them first', SLOW, async ($, on) => {
+  const seen = { closes: 0, systems: [] as string[] }
+  engine(on, seen)
+  await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+  expect(await run($, 'band')).toContain('Band above the prompt')
+  expect(await run($, 'status')).toContain('Status line only')
+  expect(await run($, 'pane')).toContain('now shows as')
+  expect(await run($, 'display nowhere')).toContain('Usage: /claudia pane | band | status')
+  const help = await run($, 'help')
+  expect(help).toContain('Where she shows')
+  expect(help).toContain('· pane: beside the chat')
+  expect(help.indexOf('pane:')).toBeLessThan(help.indexOf('wardrobe:'))
+})
+
 const bandOn = (surface: 'terminal' | 'desktop') =>
   ({
     plugin: 'claudia-companion',
